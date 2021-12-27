@@ -23,7 +23,8 @@ if __name__ == '__main__':
     _in = sys.argv[1] if len(sys.argv) > 1 else path
     # _out = sys.argv[2] if len(sys.argv) > 2 else None
 
-   
+    
+    
 
     with open(_in) as file:
         text = file.read()
