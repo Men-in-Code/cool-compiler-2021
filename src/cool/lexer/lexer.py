@@ -85,14 +85,15 @@ class Lexer:
 
     t_STRING_ignore = ''
 
-    def t_STRING_null(self,t):
+    def t_STRING_eof(self,t):
         r'\$'
         self.get_column(t)
         text = LexerErrors.LexerErrors.EOF_STRING
         self.errors.append(LexerErrors.LexerErrors(t.column,t.lineno,text))
 
-    def t_STRING_EOF(self,t):
+    def t_STRING_null(self,t):
         r'\0'
+        self.get_column(t)
         text = LexerErrors.LexerErrors.NULL_STRING
         self.errors.append(LexerErrors.LexerErrors(t.column,t.lineno,text))
 
