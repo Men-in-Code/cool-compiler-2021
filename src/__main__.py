@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "lexer/comment1.cl"
+    add = "lexer/iis4.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"

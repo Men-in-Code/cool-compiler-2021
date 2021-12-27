@@ -193,10 +193,10 @@ class Lexer:
         self.get_column(t)
         return t
 
-    def t_OF(self, t):
-        r'of'
-        self.get_column(t)
-        return t
+    # def t_OF(self, t):
+    #     r'of'
+    #     self.get_column(t)
+    #     return t
 
     def t_MINUS(self,t):
         r'-'
