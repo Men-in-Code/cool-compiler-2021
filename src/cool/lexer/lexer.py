@@ -272,9 +272,9 @@ class Lexer:
 
     # Error handling rule
     def t_error(self,t):
-        text = LexerErrors.LexerErrors.UNKNOWN_TOKEN
-        self.errors.append(LexerErrors.LexerErrors(self.get_column(t),t.lineno,text))
-
+        text = f'ERROR "{t.value[0]}"'
+        self.get_column(t)
+        self.errors.append(LexerErrors.LexerErrors(t.column,t.lineno,text))
         t.lexer.skip(1)
 
     def tokenize(self):
