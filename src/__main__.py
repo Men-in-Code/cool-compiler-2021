@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "lexer/string3.cl"
+    add = "parser/assignment1.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -40,12 +40,12 @@ if __name__ == '__main__':
             print(e)
         raise Exception()
 
-    # print(lexer)
+    print(lexer)
 
-    # parser = Parser(Lexer(text))
-    # ast = parser.parse(text)
+    parser = Parser(Lexer(text))
+    ast = parser.parse(text)
 
-    # if parser.found_error:
-    #     parser.show_errors()
-    #     raise Exception()
+    if parser.found_error:
+        parser.show_errors()
+        raise Exception()
 

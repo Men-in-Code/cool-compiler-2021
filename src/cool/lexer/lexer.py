@@ -13,7 +13,7 @@ class Lexer:
 
     def get_column(self, token):
         start_line = self.text.rfind('\n', 0, token.lexpos) + 1  
-        token.column = (token.lexpos - start_line) + 1
+        token.column = (token.lexpos - start_line) + 1 
 
         
      # Declare the state
@@ -193,11 +193,6 @@ class Lexer:
         r'\+'
         self.get_column(t)
         return t
-
-    # def t_OF(self, t):
-    #     r'of'
-    #     self.get_column(t)
-    #     return t
 
     def t_MINUS(self,t):
         r'-'

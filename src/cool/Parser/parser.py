@@ -15,7 +15,17 @@ class Parser():
                                 optimize=1,
                                 debug=True)
 
-
+    precedence = (
+        ('right', 'LARROW'),
+        ('right', 'NOT'),
+        ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
+        ('left', 'PLUS', 'MINUS'),
+        ('left', 'STAR', 'DIV'),
+        ('right', 'ISVOID'),
+        # ('right', 'INT_COMP'),
+        # ('left', 'AT'),
+        ('left', 'DOT')
+    )
 
     def parse(self, program, debug=False):
         self.found_error = False
@@ -238,13 +248,12 @@ class Parser():
 
     def p_error(self,p):
         self.found_error = True
-        if p:
-            msg = f"Error near or at {p.value}"
-            error = ParserError(p.column,p.lineno,msg)
+        if not p:
+            error = ParserError(0,0,"EOF")
             self.errors.append(error)
-        else:
-            msg = "EOF"
-            error = ParserError(p.column,p.lineno,msg)
-            self.errors.append(error)
-
+            return
+        msg = f"Error at or near {p.value}"
+        self.lexer.get_column(p)
+        error = ParserError(p.column,p.lineno,msg)
+        self.errors.append(error)
         self.parser.errok()
