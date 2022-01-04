@@ -1,3 +1,4 @@
+from os import error
 from cool.lexer.lexer import Lexer
 from cool.utils.LexerTokens.Tokens import tokens
 import ply.yacc as yacc
@@ -13,15 +14,18 @@ class Parser():
             self.parser = yacc.yacc(start='program',
                                 module=self,
                                 optimize=1,
-                                debug=True)
+                                debug=False,
+                                write_tables=True,
+                                debuglog=None,
+                                errorlog=None, )
 
     precedence = (
         ('right', 'LARROW'),
-        ('right', 'NOT'),
+        ('right', 'not'),
         ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
         ('left', 'PLUS', 'MINUS'),
         ('left', 'STAR', 'DIV'),
-        ('right', 'ISVOID'),
+        ('right', 'isvoid'),
         # ('right', 'INT_COMP'),
         # ('left', 'AT'),
         ('left', 'DOT')
@@ -32,8 +36,9 @@ class Parser():
         return self.parser.parse(program, self.lexer.lexer)
 
     def show_errors(self):
-        for e in self.errors:
-            print(e)
+        print(self.errors[0])
+        # for e in self.errors:
+        #     print(e)
 
     def p_empty(self,p):
         'empty :'

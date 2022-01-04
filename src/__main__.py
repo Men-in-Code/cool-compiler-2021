@@ -15,21 +15,15 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "parser/assignment1.cl"
+    add = "parser/let4.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
 
     _in = sys.argv[1] if len(sys.argv) > 1 else path
-    # _out = sys.argv[2] if len(sys.argv) > 2 else None
-
     
-    
-
     with open(_in) as file:
         text = file.read()
-
-    # text = '''class A { };'''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
     tokens = lexer.tokenize()
