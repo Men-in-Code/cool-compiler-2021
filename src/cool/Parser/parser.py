@@ -216,7 +216,7 @@ class Parser():
     def p_factor_call(self,p):
         '''factor : factor DOT ID OPAR arg_list_call CPAR
                   | ID OPAR arg_list_call CPAR
-                  | factor ARROBA ID DOT ID OPAR arg_list_call CPAR'''
+                  | factor ARROBA TYPE DOT ID OPAR arg_list_call CPAR'''
         if p[2] == '.':
             p[0] = CallNode(p[1], p[3],p[5])
         elif p[2] == '(':
