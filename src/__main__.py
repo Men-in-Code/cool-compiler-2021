@@ -34,7 +34,7 @@ if __name__ == '__main__':
             print(e)
         raise Exception()
 
-    print(lexer)
+    # print(lexer)
 
     parser = Parser(Lexer(text))
     ast = parser.parse(text)

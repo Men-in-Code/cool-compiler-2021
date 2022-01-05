@@ -35,10 +35,10 @@ class Parser():
         self.found_error = False
         return self.parser.parse(program, self.lexer.lexer)
 
-    def show_errors(self):
-        print(self.errors[0])
-        # for e in self.errors:
-        #     print(e)
+    # def show_errors(self):
+    #     # print(self.errors[0])
+    #     # for e in self.errors:
+    #     #     print(e)
 
     def p_empty(self,p):
         'empty :'
@@ -262,4 +262,3 @@ class Parser():
         error = ParserError(p.column,p.lineno,msg)
         self.errors.append(error)
         self.parser.errok()
-        
