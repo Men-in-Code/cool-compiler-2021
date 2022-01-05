@@ -37,9 +37,3 @@ class Test2 {
         test1.testing4(1 + 1, 1 + 2).testing4(2 + 3, 3 + 5).testing4(5 + 8, 8 + 13,) -- Extra comma
     };
 }
-
-class Alpha inherits IO {
-    print() : Object {
-        out_string("reached!!\n")
-    };
-};

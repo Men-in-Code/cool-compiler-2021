@@ -208,15 +208,20 @@ class Parser():
         p[0] = p[2]
 
     def p_factor_call(self,p):
-        '''factor : factor DOT ID OPAR arg_list CPAR
-                  | ID OPAR arg_list CPAR
-                  | factor ARROBA ID DOT ID OPAR arg_list CPAR'''
+        '''factor : factor DOT ID OPAR arg_list_call CPAR
+                  | ID OPAR arg_list_call CPAR
+                  | factor ARROBA ID DOT ID OPAR arg_list_call CPAR'''
         if p[2] == '.':
             p[0] = CallNode(p[1], p[3],p[5])
         elif p[2] == '(':
             p[0] = CallNode(None,p[1],p[3])
         elif p[2] == '@': 
             p[0] = CallNode(p[1],p[5],p[7],p[3])
+
+    def p_arg_list_call(self,p):
+        '''arg_list_call : arg_list
+                         | arg_list_empty'''
+        p[0] = ConstantNumNode(p[1])
 
     def p_atom_num(self,p):
         '''atom : NUMBER'''
@@ -241,15 +246,15 @@ class Parser():
     
     def p_arg_list(self,p):
         '''arg_list : expr
-                    | expr COMMA arg_list
-                    | empty'''
-        if len(p) == 1:
+                    | expr COMMA arg_list'''
+        if len(p) == 2:
             p[0] = [p[1]]
-        elif len(p) == 3:
+        else:
             p[0] = [p[1]] + p[3]
-        elif len(p) == 0:
-            p[0] == []
-
+        
+    def p_arg_list_empty(self,p):
+        '''arg_list_empty : empty'''
+        p[0] = []
 
     def p_error(self,p):
         self.found_error = True
