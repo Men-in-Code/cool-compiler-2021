@@ -257,7 +257,7 @@ class Parser():
             error = ParserError(0,0,"EOF")
             self.errors.append(error)
             return
-        msg = f'Error at or near "{p.value}"'
+        msg = f'ERROR at or near "{p.value}"'
         self.lexer.get_column(p)
         error = ParserError(p.column,p.lineno,msg)
         self.errors.append(error)
