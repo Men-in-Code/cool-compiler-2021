@@ -224,12 +224,31 @@ class Lexer:
         self.get_column(t)
         return t
 
+    def t_TYPE(self,t):
+        r'[A-Z][a-zA-Z_0-9]*'
+        v = str.lower(t.value)
+        if v in self.reserved:
+            t.type = self.reserved[v]
+            t.value = v
+        else:
+            t.type = 'TYPE'
+        self.get_column(t)
+        return t
+
 
     def t_ID(self,t):
         r'[a-z][a-zA-Z_0-9]*'
+
+        v = str.lower(t.value)
+        if v in self.reserved:    
+            t.type = self.reserved[v]
+            t.value = v
+        else:
+            t.type = 'ID'
+
         self.get_column(t)
-        t.type = self.reserved.get(t.value,'ID')
         return t
+
 
     def t_NUMBER(self,t):
         r'\d+(\.\d+)?'
@@ -243,26 +262,11 @@ class Lexer:
         t.value = bool(t.value)    
         return t
 
-    # def t_STRING(self,t):
-    #     r''
-    #     self.get_column(t)
-    #     return t
-
-    def t_TYPE(self,t):
-        r'[A-Z][a-zA-Z_0-9]*'
-        self.get_column(t)
-        return t
-
     def t_newline(self, t):
         r'\n+'
         t.lexer.lineno += len(t.value)
         # self.newlineFound = t.lexpos 
 
-    # def t_COMMENT(self, t):
-    #     r'--($|\n)' #puede ser q vaya --.*
-    #     # r'--.*' #puede ser q vaya --.*
-
-        # pass
 
     t_ignore= '  \t\f\r\t\v'
 
