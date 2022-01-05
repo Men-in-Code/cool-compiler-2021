@@ -7,3 +7,4 @@ class ParserError(CoolError):
     @property
     def errorType(self):
         return "SyntacticError"
+                
