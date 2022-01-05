@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "parser/method3.cl"
+    add = "parser/let4.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -42,4 +42,3 @@ if __name__ == '__main__':
     if parser.found_error:
         parser.show_errors()
         raise Exception()
-
