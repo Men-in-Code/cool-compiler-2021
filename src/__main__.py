@@ -40,5 +40,5 @@ if __name__ == '__main__':
     ast = parser.parse(text)
 
     if parser.found_error:
-        parser.show_errors()
+        print(parser.errors[0])
         raise Exception()
