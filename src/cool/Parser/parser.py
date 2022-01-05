@@ -262,3 +262,4 @@ class Parser():
         error = ParserError(p.column,p.lineno,msg)
         self.errors.append(error)
         self.parser.errok()
+        
