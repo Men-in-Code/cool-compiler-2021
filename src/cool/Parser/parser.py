@@ -75,24 +75,30 @@ class Parser():
 
 
     def p_def_func(self,p):
-        '''def_func : ID OPAR param_list CPAR COLON TYPE OCUR expr CCUR'''
+        '''def_func : ID OPAR param_list_call CPAR COLON TYPE OCUR expr CCUR'''
         p[0] = FuncDeclarationNode(p[1], p[3], p[6], p[8]) 
 
+    def p_param_list_call(self,p):
+        '''param_list_call : param_list
+                           | param_list_empty'''
 
     def p_param_list(self,p):
-        '''param_list : empty
-                      | param
-                      | param COMMA param_list'''
-        if len(p) == 1:
-            p[0] = []
-        elif len(p) == 2:
+        '''param_list : param
+                      | param COMMA param_list'''###arreglar
+
+        if len(p) == 2:
             p[0] = [p[1]]
         else:
             p[0] = [p[1]] + p[3]
 
+    def p_param_list_empty(self,p):
+        '''param_list_empty : empty'''
+        p[0] = []
+            
+
     def p_param(self,p):
         '''param : ID COLON TYPE'''
-        p[0] = (p[1],p[3])#ver si seria p.slice[1],p.slice[2]
+        p[0] = (p[1],p[3])
 
     def p_expr_list(self,p):
         '''expr_list : expr SEMI expr_list
@@ -155,9 +161,9 @@ class Parser():
         p[0] = NotNode(p[2]) if len(p) == 3 else p[1]
 
     def p_comparison(self,p):
-        '''comparison : comparison EQUAL arith
-                      | comparison LESS arith
-                      | comparison LESSEQ arith 
+        '''comparison : comparison EQUAL boolean
+                      | comparison LESS boolean
+                      | comparison LESSEQ boolean 
                       | arith'''
         if len(p) ==4 and p[2] == '=':
             p[0] = EqualNode(p[1],p[3])
@@ -168,8 +174,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_arith(self,p):
-        '''arith : arith PLUS term
-                 | arith MINUS term
+        '''arith : expr PLUS term
+                 | expr MINUS term
                  | term'''
         if len(p) ==4 and p[2] == '+':
             p[0] = PlusNode(p[1], p[3])
@@ -178,8 +184,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_term(self,p):
-        '''term : term STAR unary
-                | term DIV unary
+        '''term : expr STAR unary
+                | expr DIV unary
                 | unary'''
         if len(p) == 4 and p[2] == '*':
             p[0] = StarNode(p[1], p[3])
@@ -230,6 +236,7 @@ class Parser():
     def p_atom_boolean(self, p):
         '''atom : true
                 | false'''
+        c = self.lexer.get_column(p.slice[1])
         p[0] = BooleanNode(p[1])
 
     def p_atom_id(self,p):

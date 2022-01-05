@@ -12,10 +12,11 @@ class Lexer:
         self.text = text
 
     def get_column(self, token):
-        start_line = self.text.rfind('\n', 0, token.lexpos) + 1  
-        token.column = (token.lexpos - start_line) + 1 
+        start_line = self.text.rfind('\n', 0, token.lexpos) + 1
+        c = (token.lexpos - start_line) + 1 
+        token.column = c
+        return c
 
-        
      # Declare the state
     states = (
     ('comments','exclusive'),
@@ -256,11 +257,11 @@ class Lexer:
         t.value = float(t.value)    
         return t
 
-    def t_BOOL(self,t):
-        r'[true,false]'
-        self.get_column(t)
-        t.value = bool(t.value)    
-        return t
+    # def t_BOOL(self,t):
+    #     r'[true,false]'
+    #     self.get_column(t)
+    #     t.value = bool(t.value)    
+    #     return t
 
     def t_newline(self, t):
         r'\n+'
