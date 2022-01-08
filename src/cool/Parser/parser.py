@@ -1,4 +1,3 @@
-from os import error
 from cool.lexer.lexer import Lexer
 from cool.utils.LexerTokens.Tokens import tokens
 import ply.yacc as yacc
