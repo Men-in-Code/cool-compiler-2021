@@ -57,7 +57,7 @@ class Parser():
                      | class TYPE inherits TYPE OCUR feature_list CCUR'''
         col = self.lexer.get_column(p.slice[2])
         line = p.lineno(1)
-        p[0] = ClassDeclarationNode(p[2], p[4], line, col) if len(p)== 6\
+        p[0] = ClassDeclarationNode(p[2], p[4],'Object', line, col) if len(p)== 6\
                 else ClassDeclarationNode(p[2], p[6], p[4], line, col)
 
 
@@ -73,7 +73,7 @@ class Parser():
                     | ID COLON TYPE LARROW expr'''
         col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
-        p[0] = AttrDeclarationNode(p[1], p[3], line, col) if len(p)==4\
+        p[0] = AttrDeclarationNode(p[1], p[3], None, line, col) if len(p)==4\
                 else AttrDeclarationNode(p[1],p[3],p[5], line, col)
 
 
@@ -122,7 +122,7 @@ class Parser():
                   | ID COLON TYPE LARROW expr'''
         col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
-        p[0] = LetDeclarationNode(p[1], p[3], line, col) if len(p) == 4\
+        p[0] = LetDeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
                 else LetDeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_assign_list(self,p):
@@ -244,11 +244,11 @@ class Parser():
                   | ID OPAR arg_list_call CPAR
                   | factor ARROBA TYPE DOT ID OPAR arg_list_call CPAR'''
         if p[2] == '.':
-            p[0] = CallNode(p[1], p[3],p[5], p.lineno(2), self.lexer.get_column(p.slice[2]))
+            p[0] = CallNode(p[1], p[3], p[5], None, p.lineno(2), self.lexer.get_column(p.slice[2]))
         elif p[2] == '(':
-            p[0] = CallNode(None,p[1],p[3], p.lineno(1), self.lexer.get_column(p.slice[1]))
+            p[0] = CallNode(None, p[1], p[3], None, p.lineno(1), self.lexer.get_column(p.slice[1]))
         elif p[2] == '@': 
-            p[0] = CallNode(p[1],p[5],p[7],p[3], p.lineno(3), self.lexer.get_column(p.slice[3]))
+            p[0] = CallNode(p[1], p[5], p[7], p[3], p.lineno(3), self.lexer.get_column(p.slice[3]))
 
     def p_arg_list_call(self,p):
         '''arg_list_call : arg_list

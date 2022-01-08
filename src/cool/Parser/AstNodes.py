@@ -10,7 +10,7 @@ class ExpressionNode(Node):
     pass
 
 class ClassDeclarationNode(DeclarationNode):
-    def __init__(self, idx, features, parent=None, row = 0, column=0):
+    def __init__(self, idx, features, parent, row , column):
         self.id = idx
         self.parent = parent
         self.features = features
@@ -70,7 +70,7 @@ class ExpressionGroupNode(ExpressionNode):
         self.column = column
 
 class AttrDeclarationNode(DeclarationNode):
-    def __init__(self, idx, typex, expr = None, row = 0, column = 0):
+    def __init__(self, idx, typex, expr, row = 0, column = 0):
         self.id = idx
         self.type = typex
         self.expr = expr
@@ -79,7 +79,7 @@ class AttrDeclarationNode(DeclarationNode):
         self.column = column
 
 class VarDeclarationNode(ExpressionNode):
-    def __init__(self, idx, typex, expr = None, row = 0, column = 0):
+    def __init__(self, idx, typex, expr, row = 0, column = 0):
         self.id = idx
         self.type = typex
         self.expr = expr
@@ -88,7 +88,7 @@ class VarDeclarationNode(ExpressionNode):
         self.column = column
         
 class LetDeclarationNode(ExpressionNode):
-    def __init__(self, idx, typex, expr = None, row = 0, column = 0):
+    def __init__(self, idx, typex, expr, row = 0, column = 0):
         self.id = idx
         self.type = typex
         self.expr = expr
@@ -105,7 +105,7 @@ class AssignNode(ExpressionNode):
         self.column = column
 
 class CallNode(ExpressionNode):
-    def __init__(self, obj, idx, args, parent = None, row = 0, column = 0):
+    def __init__(self, obj, idx, args, parent, row = 0, column = 0):
         self.obj = obj
         self.id = idx
         self.args = args
