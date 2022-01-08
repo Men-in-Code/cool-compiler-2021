@@ -1,13 +1,9 @@
 import sys
 from pathlib import Path
-
-from ply.lex import LexError, lex
 from cool.lexer.lexer import Lexer, main
-from cool.utils.Errors import parser_errors
 from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
-from cool.utils.Errors.parser_errors  import ParserError
-from cool.utils.Errors.LexerErrors import LexerErrors
+from cool.semantic.semanticAnalizer import run_semantic_pipeline
 
 
 import os.path
@@ -42,3 +38,5 @@ if __name__ == '__main__':
     if parser.found_error:
         print(parser.errors[0])
         raise Exception()
+
+    run_semantic_pipeline(ast)
