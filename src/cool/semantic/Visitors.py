@@ -1,13 +1,13 @@
 from cool.Parser.AstNodes import *
-import visitor
-from semantic import ObjectType, Scope
-from semantic import get_common_parent
-from semantic import SemanticException
-from semantic import VoidType, ErrorType, IntType, BoolType
-from semantic import Context
+from cool.semantic import visitor
+from cool.semantic.semantic import ObjectType, Scope
+from cool.semantic.semantic import get_common_parent
+from cool.semantic.semantic import SemanticException
+from cool.semantic.semantic import VoidType, ErrorType, IntType, BoolType
+from cool.semantic.semantic import Context
 from cool.utils.Errors.semantic_errors import *
 
-import visitor as visitor
+# import visitor as visitor
 
 
 WRONG_SIGNATURE = 'Method "%s" already defined in "%s" with a different signature.'
@@ -72,7 +72,7 @@ class TypeCollector(object):
             
         except SemanticException as ex:
             node.parent = ErrorType().name
-            error = SemanticException(node.column,node.row,ex.text)
+            error = SemanticError(node.column,node.row,ex.text)
             self.errors.append(error)
 
 class TypeBuilder:
@@ -270,7 +270,7 @@ class TypeChecker:
         expr_type = node.body.computed_type
         
         method_rtn_type = self.current_feature.return_type
-        if method_rtn_type.name is not 'Void':
+        if method_rtn_type.name != 'Void':
             if method_rtn_type.is_autotype:
                 self.current_type.substitute_type(self.context.get_type(node.type),expr_type)
                 scope.substitute_type(self.context.get_type(node.type),expr_type)

@@ -81,11 +81,13 @@ class Parser():
         '''def_func : ID OPAR param_list_call CPAR COLON TYPE OCUR expr CCUR'''
         col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
+        x = p[3]
         p[0] = FuncDeclarationNode(p[1], p[3], p[6], p[8], line, col) 
 
     def p_param_list_call(self,p):
         '''param_list_call : param_list
                            | param_list_empty'''
+        p[0] = p[1]
 
     def p_param_list(self,p):
         '''param_list : param
@@ -251,6 +253,7 @@ class Parser():
     def p_arg_list_call(self,p):
         '''arg_list_call : arg_list
                          | arg_list_empty'''
+        p[0] = p[1]
     
     def p_atom_num(self,p):
         '''atom : NUMBER'''

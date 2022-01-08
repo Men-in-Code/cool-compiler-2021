@@ -1,4 +1,4 @@
-from Visitors import TypeChecker,TypeBuilder,TypeCollector #,TypeInferences,FormatVisitor
+from cool.semantic.Visitors import TypeChecker,TypeBuilder,TypeCollector #,TypeInferences,FormatVisitor
 # from Tools import inference_cleaner,inference_solver
 
 def run_semantic_pipeline(ast):
