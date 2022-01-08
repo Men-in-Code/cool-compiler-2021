@@ -257,7 +257,7 @@ class Context:
         error_type = ErrorType()
 
         string_type = StringType()
-        string_type.define_method('lenght',[],[],IntType())
+        string_type.define_method('length',[],[],IntType())
         string_type.define_method('concat',['s'],[StringType()],StringType())
         string_type.define_method('substr', ['i','l'] ,[IntType(),IntType()],StringType())
 

@@ -15,9 +15,9 @@ def run_semantic_pipeline(ast):
     context = collector.context
     print_error(errors)
     # print('Errors:', errors)
-    # print('Context:')
-    # print(context)
-    # print('=============== BUILDING TYPES ================')
+    print('Context:')
+    print(context)
+    print('=============== BUILDING TYPES ================')
     builder = TypeBuilder(context, errors)
     builder.visit(ast)
     actual_counter = builder.counter
@@ -26,9 +26,9 @@ def run_semantic_pipeline(ast):
     # for error in errors:
     #     print('\t', error)
     # print(']')
-    # print('Context:')
-    # print(context)
-    # print('=============== CHECKING TYPES ================')
+    print('Context:')
+    print(context)
+    print('=============== CHECKING TYPES ================')
     checker = TypeChecker(context, errors,actual_counter)
     checker.visit(ast) # scope = checker.visit(ast)
     print_error(errors)
