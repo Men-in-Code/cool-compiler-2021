@@ -275,11 +275,11 @@ class Parser():
         line = p.lineno(1)
         p[0] = VariableNode(p[1], line, col)
 
-    # def p_atom_instantiate(self,p):
-    #     '''atom : new TYPE'''
-    #     col = self.lexer.get_column(p.slice[1])
-    #     line = p.lineno(2)
-    #     p[0] = InstantiateNode(p[2], line, col)
+    def p_atom_instantiate(self,p):
+        '''atom : new TYPE'''
+        col = self.lexer.get_column(p.slice[1])
+        line = p.lineno(2)
+        p[0] = InstantiateNode(p[2], line, col)
     
     def p_atom_string(self,p):
         '''atom : STRING'''
