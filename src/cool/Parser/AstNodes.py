@@ -154,7 +154,7 @@ class ConstantNumNode(AtomicNode):
     pass
 class VariableNode(AtomicNode):
     pass
-class InstantiateNode(AtomicNode):
+class InstantiateNode():
     pass
 class BooleanNode(AtomicNode):
     pass
