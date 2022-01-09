@@ -242,24 +242,14 @@ class Context:
         self.types = {}
         self.special_types = []
         object_type = ObjectType()
-        object_type.define_method('abort',[],[],ObjectType())
-        object_type.define_method('type_name',[],[],StringType())
-        object_type.define_method('copy',[],[],'self')
 
         IO_type = IOType()
-        IO_type.define_method('out_string',['x'],[StringType()],'self')
-        IO_type.define_method('out_int',['x'],[IntType()],'self')
-        IO_type.define_method('in_string',[],[],StringType())
-        IO_type.define_method('in_int',[],[],IntType())
 
         int_type = IntType()
         bool_type = BoolType()
         error_type = ErrorType()
 
         string_type = StringType()
-        string_type.define_method('length',[],[],IntType())
-        string_type.define_method('concat',['s'],[StringType()],StringType())
-        string_type.define_method('substr', ['i','l'] ,[IntType(),IntType()],StringType())
 
         self.types['Object'] = object_type
         self.types['Int'] = int_type
@@ -267,6 +257,17 @@ class Context:
         self.types['Bool'] = bool_type
         self.types['Error'] = error_type
         self.types['IO'] = IO_type
+        
+        object_type.define_method('abort',[],[],object_type)
+        object_type.define_method('type_name',[],[],string_type)
+        object_type.define_method('copy',[],[],'self')
+        IO_type.define_method('out_string',['x'],[string_type],'self')
+        IO_type.define_method('out_int',['x'],[int_type],'self')
+        IO_type.define_method('in_string',[],[],string_type)
+        IO_type.define_method('in_int',[],[],int_type)
+        string_type.define_method('length',[],[],int_type)
+        string_type.define_method('concat',['s'],[string_type],string_type)
+        string_type.define_method('substr', ['i','l'] ,[int_type,int_type],string_type)
         
 
         
