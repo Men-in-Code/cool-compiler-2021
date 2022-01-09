@@ -509,7 +509,7 @@ class TypeChecker:
         
         try:
             if node.obj is None:
-                node.obj = InstantiateNode(self.current_type.name) 
+                node.obj = InstantiateNode(self.current_type.name,node.row,node.col) 
                 obj_type = self.current_type
             else:
                 self.visit(node.obj, scope)
