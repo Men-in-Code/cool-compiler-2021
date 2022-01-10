@@ -115,11 +115,11 @@ class TypeBuilder:
             if node.type == 'SELF_TYPE':
                 node.type = self.current_type.name
                 attr_type = self.current_type
-            elif node.type == 'AUTO_TYPE':
-                node.type = self.context.create_type('t^' + str(self.counter)).name
-                self.counter += 1
-                attr_type = self.context.get_type(node.type)
-                attr_type.is_autotype = True
+            # elif node.type == 'AUTO_TYPE':
+            #     node.type = self.context.create_type('t^' + str(self.counter)).name
+            #     self.counter += 1
+            #     attr_type = self.context.get_type(node.type)
+            #     attr_type.is_autotype = True
             else:
                 attr_type = self.context.get_type(node.type)  
         except SemanticException as ex:
@@ -141,20 +141,20 @@ class TypeBuilder:
             idx,typex = node.params[i]
             if typex == 'SELF_TYPE':
                 node.params[i] = (idx,self.current_type.name)
-            elif typex == 'AUTO_TYPE':
-                new_type_name = 't^' + str(self.counter)
-                new_type = self.context.create_type(new_type_name)
-                self.counter += 1
-                new_type.is_autotype = True
-                node.params[i] = (idx,new_type_name)
+            # elif typex == 'AUTO_TYPE':
+            #     new_type_name = 't^' + str(self.counter)
+            #     new_type = self.context.create_type(new_type_name)
+            #     self.counter += 1
+            #     new_type.is_autotype = True
+            #     node.params[i] = (idx,new_type_name)
         if node.type == 'SELF_TYPE':
             node.type = self.current_type.name
-        elif node.type == 'AUTO_TYPE':
-            new_type_name = 't^' + str(self.counter)
-            new_type = self.context.create_type(new_type_name)
-            self.counter += 1
-            new_type.is_autotype = True
-            node.type = new_type_name
+        # elif node.type == 'AUTO_TYPE':
+        #     new_type_name = 't^' + str(self.counter)
+        #     new_type = self.context.create_type(new_type_name)
+        #     self.counter += 1
+        #     new_type.is_autotype = True
+        #     node.type = new_type_name
         
         
         for idx, typex in node.params:
@@ -506,10 +506,9 @@ class TypeChecker:
     
     @visitor.when(CallNode)
     def visit(self, node, scope,expected = None):
-        
         try:
             if node.obj is None:
-                node.obj = InstantiateNode(self.current_type.name,node.row,node.col) 
+                node.obj = InstantiateNode(self.current_type.name,node.row,node.column) 
                 obj_type = self.current_type
             else:
                 self.visit(node.obj, scope)
@@ -525,11 +524,11 @@ class TypeChecker:
             try:
                 obj_method = obj_type.get_method(node.id)
 
-                if expected and obj_method.return_type.is_autotype:
-                    self.inference.append((obj_method.return_type.name,expected))
-                    scope.substitute_type(obj_method.return_type,self.context.get_type(expected))
-                    self.current_type.substitute_type(obj_method.return_type,self.context.get_type(expected))
-                    obj_method.return_type = self.context.get_type(expected)
+                # if expected and obj_method.return_type.is_autotype:
+                #     self.inference.append((obj_method.return_type.name,expected))
+                #     scope.substitute_type(obj_method.return_type,self.context.get_type(expected))
+                #     self.current_type.substitute_type(obj_method.return_type,self.context.get_type(expected))
+                #     obj_method.return_type = self.context.get_type(expected)
                 
                 if len(node.args) == len(obj_method.param_types):
                     for i,params in enumerate(zip(node.args, obj_method.param_types)):
@@ -538,12 +537,12 @@ class TypeChecker:
                         arg_type = arg.computed_type
                         
 
-                        if obj_method.param_types[i].is_autotype:
-                            self.inference.append((obj_method.param_types[i].name,arg_type.name))
-                            scope.substitute_type(obj_method.param_types[i],arg_type)
-                            self.current_type.substitute_type(obj_method.param_types[i],arg_type)
-                            obj_method.param_types[i] = arg_type
-                            param_type = arg_type
+                        # if obj_method.param_types[i].is_autotype:
+                        #     self.inference.append((obj_method.param_types[i].name,arg_type.name))
+                        #     scope.substitute_type(obj_method.param_types[i],arg_type)
+                        #     self.current_type.substitute_type(obj_method.param_types[i],arg_type)
+                        #     obj_method.param_types[i] = arg_type
+                        #     param_type = arg_type
 
 
                         if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):

@@ -25,7 +25,7 @@ class Method:
 
     def __str__(self):
         params = ', '.join(f'{n}:{t.name}' for n,t in zip(self.param_names, self.param_types))
-        return f'[method] {self.name}({params}): {self.return_type};'
+        return f'[method] {self.name}({params}): {self.return_type.name};'
 
     def __eq__(self, other):
         return other.name == self.name and \
@@ -248,7 +248,7 @@ class Context:
         int_type = IntType()
         bool_type = BoolType()
         error_type = ErrorType()
-
+        self_type = SelfType()
         string_type = StringType()
 
         self.types['Object'] = object_type
@@ -260,9 +260,9 @@ class Context:
         
         object_type.define_method('abort',[],[],object_type)
         object_type.define_method('type_name',[],[],string_type)
-        object_type.define_method('copy',[],[],'self')
-        IO_type.define_method('out_string',['x'],[string_type],'self')
-        IO_type.define_method('out_int',['x'],[int_type],'self')
+        object_type.define_method('copy',[],[],self_type)
+        IO_type.define_method('out_string',['x'],[string_type],self_type)
+        IO_type.define_method('out_int',['x'],[int_type],self_type)
         IO_type.define_method('in_string',[],[],string_type)
         IO_type.define_method('in_int',[],[],int_type)
         string_type.define_method('length',[],[],int_type)

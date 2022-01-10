@@ -122,18 +122,18 @@ class ExpressionGroupNode(ExpressionNode):
         self.column = column
 
 class AtomicNode(ExpressionNode):
-    def __init__(self, lex, line, column):
+    def __init__(self, lex, row, column):
         self.lex = lex
         self.place_holder = None
-        self.line = line
+        self.row = row
         self.column = column
 
 class BinaryNode(ExpressionNode):
-    def __init__(self, left, right, line, column):
+    def __init__(self, left, right, row, column):
         self.left = left
         self.right = right
         self.place_holder = None
-        self.line = line
+        self.row = row
         self.column = column
         
 class BinaryIntNode(BinaryNode):
@@ -142,10 +142,10 @@ class BinaryBoolNode(BinaryNode):
     pass
 
 class UnaryNode(ExpressionNode):
-    def __init__(self,right, line, column):
+    def __init__(self,right, row, column):
         self.right = right
         self.place_holder = None
-        self.line = line
+        self.row = row
         self.column = column
 
 class StringNode(AtomicNode):
