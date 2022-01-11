@@ -13,7 +13,7 @@ from cool.utils.Errors.semantic_errors import *
 WRONG_SIGNATURE = 'Method "%s" already defined in "%s" with a different signature.'
 SELF_IS_READONLY = 'Variable "self" is read-only.'
 LOCAL_ALREADY_DEFINED = 'Variable "%s" is already defined in method "%s".'
-INCOMPATIBLE_TYPES = 'Cannot convert <%s> into <%s>.'
+INCOMPATIBLE_TYPES = 'Inferred type <%s> of initialization of attribute test does not conform to declared type <%s>.'
 VARIABLE_NOT_DEFINED = 'Variable "%s" is not defined in "%s".'
 INVALID_OPERATION = 'Operation is not defined between <%s> and <%s>.'
 TYPE_AS_VARIABLE = 'Type <%s> used as variable.'
@@ -230,7 +230,7 @@ class TypeChecker:
             if not node_type.is_autotype:
                 if not expr_type.conforms_to(node_type):
                     text = f'In class "{self.current_type.name}" ' + f'in feature "{node.id}": ' +INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).replace('%s',node_type.name,1)
-                    error = SemanticError(node.column,node.row,text)
+                    error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
             else:
                 scope.substitute_type(self.context.get_type(node.type),self.context.get_type(expr_type.name))
@@ -279,11 +279,11 @@ class TypeChecker:
                 try:
                     if not expr_type.conforms_to(method_rtn_type):
                         text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
-                        error = SemanticError(node.column,node.row,text)
+                        error = TypeError(node.column,node.row,text)
                         self.errors.append(error)
                 except Exception:
                     text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
-                    error = SemanticError(node.column,node.row,text)
+                    error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
 
         self.current_type.change_param(node.id,scope)
@@ -406,7 +406,7 @@ class TypeChecker:
         
         node.computed_type = node_type
         
-    @visitor.when(LetDeclarationNode)
+    @visitor.when(DeclarationNode)
     def visit(self, node, scope,expected = None):
         expected_child = node.type
         try:
@@ -434,7 +434,7 @@ class TypeChecker:
             else:
                 if not expr_type.conforms_to(node_type):
                     text = f'In class "{self.current_type.name}", Let result: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
-                    error = SemanticError(node.column,node.row,text)
+                    error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
 
         if not scope.is_local(node.id):
@@ -494,7 +494,7 @@ class TypeChecker:
                 self.errors.append(error)
             elif not expr_type.conforms_to(node_type):
                 text = f'In class "{self.current_type.name}", assign operation to "{node.id}": '+INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
-                error = SemanticError(node.column,node.row,text)
+                error = TypeError(node.column,node.row,text)
                 self.errors.append(error)
         else:
             text = f'In class "{self.current_type.name}", assign operation to "{node.id}": '+VARIABLE_NOT_DEFINED.replace('%s', node.id, 1).replace('%s', self.current_feature.name, 1)
@@ -547,7 +547,7 @@ class TypeChecker:
 
                         if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
                             text = f'In class {self.current_type.name} in function call of {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', param_type.name, 1)
-                            error = SemanticError(node.column,node.row,text)
+                            error = TypeError(node.column,node.row,text)
                             self.errors.append(error)
                 else:
                     text = f' In class {self.current_type.name}: Method "{obj_method.name}" from "{obj_type.name}" only accepts {len(obj_method.param_types)} argument(s)'
@@ -584,7 +584,7 @@ class TypeChecker:
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
             text = f'In class {self.current_type.name}: '+INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
         else:
             node_type = IntType()
@@ -602,7 +602,7 @@ class TypeChecker:
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
             text = f'In class {self.current_type.name}: '+ INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
         else:
             node_type = BoolType()

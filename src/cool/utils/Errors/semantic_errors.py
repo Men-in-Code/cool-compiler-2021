@@ -7,4 +7,11 @@ class SemanticError(CoolError):
     @property
     def errorType(self):
         return "SemanticError"
-                
+
+class TypeError(SemanticError):
+    def __init__(self, column: int, line: int, text: str):
+        super().__init__(column, line, text)
+
+    @property
+    def errorType(self):
+        return "TypeError"

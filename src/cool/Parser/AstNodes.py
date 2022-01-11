@@ -87,7 +87,7 @@ class VarDeclarationNode(ExpressionNode):
         self.row = row
         self.column = column
         
-class LetDeclarationNode(ExpressionNode):
+class DeclarationNode(ExpressionNode):
     def __init__(self, idx, typex, expr, row = 0, column = 0):
         self.id = idx
         self.type = typex

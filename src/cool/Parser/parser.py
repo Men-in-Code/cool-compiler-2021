@@ -71,7 +71,7 @@ class Parser():
     def p_def_attr(self,p):
         '''def_attr : ID COLON TYPE
                     | ID COLON TYPE LARROW expr'''
-        col = self.lexer.get_column(p.slice[1])
+        col = self.lexer.get_column(p.slice[3])
         line = p.lineno(1)
         p[0] = AttrDeclarationNode(p[1], p[3], None, line, col) if len(p)==4\
                 else AttrDeclarationNode(p[1],p[3],p[5], line, col)
@@ -122,8 +122,8 @@ class Parser():
                   | ID COLON TYPE LARROW expr'''
         col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
-        p[0] = LetDeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
-                else LetDeclarationNode(p[1],p[3],p[5], line, col)
+        p[0] = DeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
+                else DeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_assign_list(self,p):
         '''assign_list : case_assign
