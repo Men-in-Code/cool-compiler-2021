@@ -391,12 +391,12 @@ class TypeChecker:
         for arg in node.params:
             if arg.type == 'SELF_TYPE':
                 arg.type = self.current_type.name
-            if arg.type == 'AUTO_TYPE':
-                new_type_name = 't^' + str(self.counter)
-                self.counter+= 1
-                new_type = self.context.create_type(new_type_name)
-                new_type.is_autotype = True
-                arg.type = new_type_name
+            # if arg.type == 'AUTO_TYPE':
+            #     new_type_name = 't^' + str(self.counter)
+            #     self.counter+= 1
+            #     new_type = self.context.create_type(new_type_name)
+            #     new_type.is_autotype = True
+            #     arg.type = new_type_name
             self.visit(arg,child_scope)
             arg_type = arg.computed_type
             
