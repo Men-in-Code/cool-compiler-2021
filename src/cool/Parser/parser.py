@@ -120,6 +120,7 @@ class Parser():
         p[0] = [p[1]] if len(p) == 2 else [p[1]]+p[3]
 
     def p_declar(self,p):
+        # la 1era producc. no debe ir
         '''declar : ID COLON TYPE
                   | ID COLON TYPE LARROW expr'''
         # col = self.lexer.get_column(p.slice[1])
@@ -191,9 +192,8 @@ class Parser():
         '''boolean : not comparison
                    | comparison'''
         # col = self.lexer.get_column(p.slice[1])
-        col = p.slice[1].column
         line = p.lineno(1)
-        p[0] = NotNode(p[2], line, col) if len(p) == 3 else p[1]
+        p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
 
     def p_comparison(self,p):
         '''comparison : comparison EQUAL boolean
@@ -201,11 +201,11 @@ class Parser():
                       | comparison LESSEQ boolean 
                       | arith'''
         if len(p) ==4 and p[2] == '=':
-            p[0] = EqualNode(p[1],p[3], p.lineno(2), p.slice[2].column)
+            p[0] = EqualNode(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '<':
-            p[0] = LessNode(p[1],p[3], p.lineno(2), p.slice[2].column)
+            p[0] = LessNode(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '<=':
-            p[0] = LessEqual(p[1],p[3], p.lineno(2), p.slice[2].column)
+            p[0] = LessEqual(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         else: p[0] = p[1]
 
     def p_arith(self,p):
@@ -213,9 +213,9 @@ class Parser():
                  | expr MINUS term
                  | term'''
         if len(p) ==4 and p[2] == '+':
-            p[0] = PlusNode(p[1], p[3], p.lineno(2), p.slice[2].column)
+            p[0] = PlusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '-':
-            p[0] = MinusNode(p[1], p[3], p.lineno(2), p.slice[2].column)
+            p[0] = MinusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         else: p[0] = p[1]
 
     def p_term(self,p):
@@ -223,9 +223,9 @@ class Parser():
                 | expr DIV unary
                 | unary'''
         if len(p) == 4 and p[2] == '*':
-            p[0] = StarNode(p[1], p[3], p.lineno(2), p.slice[2].column)
+            p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         elif len(p) == 4 and p[2] == '/':
-            p[0] = DivNode(p[1], p[3], p.lineno(2), p.slice[2].column)
+            p[0] = DivNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         else: p[0] = p[1]
     
     def p_unary_factor(self,p):

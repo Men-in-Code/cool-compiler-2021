@@ -129,10 +129,10 @@ class AtomicNode(ExpressionNode):
         self.column = column
 
 class BinaryNode(ExpressionNode):
-    def __init__(self, left, right, row, column):
+    def __init__(self, tok, left, right, row, column):
         self.left = left
         self.right = right
-        self.place_holder = None
+        self.lex = tok.value
         self.row = row
         self.column = column
         

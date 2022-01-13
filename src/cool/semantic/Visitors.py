@@ -13,9 +13,9 @@ from cool.utils.Errors.semantic_errors import *
 WRONG_SIGNATURE = 'Method "%s" already defined in "%s" with a different signature.'
 SELF_IS_READONLY = 'Variable "self" is read-only.'
 LOCAL_ALREADY_DEFINED = 'Variable "%s" is already defined in method "%s".'
-INCOMPATIBLE_TYPES = 'Inferred type <%s> of initialization of attribute test does not conform to declared type <%s>.'
+INCOMPATIBLE_TYPES = 'Inferred type %s of initialization of attribute %s does not conform to declared type %s.'
 VARIABLE_NOT_DEFINED = 'Variable "%s" is not defined in "%s".'
-INVALID_OPERATION = 'Operation is not defined between <%s> and <%s>.'
+INVALID_OPERATION = 'non-Int arguments: %s %s %s.'
 TYPE_AS_VARIABLE = 'Type <%s> used as variable.'
 INVALID_CONDITION = ' <%s> condition must be boolean '
 INVALID_HERITAGE = 'Cant heritage from <%s>'
@@ -115,11 +115,6 @@ class TypeBuilder:
             if node.type == 'SELF_TYPE':
                 node.type = self.current_type.name
                 attr_type = self.current_type
-            # elif node.type == 'AUTO_TYPE':
-            #     node.type = self.context.create_type('t^' + str(self.counter)).name
-            #     self.counter += 1
-            #     attr_type = self.context.get_type(node.type)
-            #     attr_type.is_autotype = True
             else:
                 attr_type = self.context.get_type(node.type)  
         except SemanticException as ex:
@@ -141,21 +136,8 @@ class TypeBuilder:
             idx,typex = node.params[i]
             if typex == 'SELF_TYPE':
                 node.params[i] = (idx,self.current_type.name)
-            # elif typex == 'AUTO_TYPE':
-            #     new_type_name = 't^' + str(self.counter)
-            #     new_type = self.context.create_type(new_type_name)
-            #     self.counter += 1
-            #     new_type.is_autotype = True
-            #     node.params[i] = (idx,new_type_name)
         if node.type == 'SELF_TYPE':
             node.type = self.current_type.name
-        # elif node.type == 'AUTO_TYPE':
-        #     new_type_name = 't^' + str(self.counter)
-        #     new_type = self.context.create_type(new_type_name)
-        #     self.counter += 1
-        #     new_type.is_autotype = True
-        #     node.type = new_type_name
-        
         
         for idx, typex in node.params:
             try:
@@ -227,15 +209,13 @@ class TypeChecker:
             self.visit(node.expr, scope,expected_child)
             expr_type = node.expr.computed_type
             
-            if not node_type.is_autotype:
-                if not expr_type.conforms_to(node_type):
-                    text = f'In class "{self.current_type.name}" ' + f'in feature "{node.id}": ' +INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).replace('%s',node_type.name,1)
-                    error = TypeError(node.column,node.row,text)
-                    self.errors.append(error)
-            else:
-                scope.substitute_type(self.context.get_type(node.type),self.context.get_type(expr_type.name))
-                self.current_type.substitute_type(self.context.get_type(node.type),self.context.get_type(expr_type.name))
-                self.inference.append((node.type,expr_type.name))
+            if not expr_type.conforms_to(node_type):
+                # text = f'In class "{self.current_type.name}" ' + f'in feature "{node.id}": ' +INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).replace('%s',node_type.name,1)
+                text = INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).\
+                    replace('%s', node.id, 1).replace('%s',node_type.name,1)
+                error = TypeError(node.column,node.row,text)
+                self.errors.append(error)
+
                 
     
     @visitor.when(FuncDeclarationNode)
@@ -244,21 +224,8 @@ class TypeChecker:
         
         for i,params in enumerate(zip(self.current_feature.param_names, self.current_feature.param_types)):
             pname, ptype = params
-            if ptype.name == 'AUTO_TYPE':
-                new_auto = self.context.create_type('t^'+str(self.counter))
-                self.counter += 1
-                new_auto.is_autotype = True
-                ptype = new_auto
-                self.current_feature.param_types[i] = ptype
-                
             scope.define_variable(pname, ptype)
             
-        if node.type == 'AUTO_TYPE':
-            new_ret_type = self.context.create_type('t^'+str(self.counter))
-            self.counter += 1
-            new_ret_type.is_autotype = True
-            self.current_feature.return_type = new_ret_type
-            node.type = new_ret_type.name
 
         method_rtn_type = self.current_feature.return_type
         if method_rtn_type.name != 'Void':
@@ -271,20 +238,20 @@ class TypeChecker:
         
         method_rtn_type = self.current_feature.return_type
         if method_rtn_type.name != 'Void':
-            if method_rtn_type.is_autotype:
-                self.current_type.substitute_type(self.context.get_type(node.type),expr_type)
-                scope.substitute_type(self.context.get_type(node.type),expr_type)
-                self.inference.append((node.type,expr_type.name))
-            else:
-                try:
-                    if not expr_type.conforms_to(method_rtn_type):
-                        text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
-                        error = TypeError(node.column,node.row,text)
-                        self.errors.append(error)
-                except Exception:
-                    text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
+            try:
+                if not expr_type.conforms_to(method_rtn_type):
+                    # text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
+                    text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                        replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
+
                     error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
+            except Exception:
+                # text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
+                text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                    replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
+                error = TypeError(node.column,node.row,text)
+                self.errors.append(error)
 
         self.current_type.change_param(node.id,scope)
 
@@ -346,26 +313,18 @@ class TypeChecker:
             
             
         else:
-            if then_type.is_autotype and not else_type.is_autotype:
-                self.visit(node.thenexp,scope,else_type.name)
-                node_type = else_type
-            
-            elif else_type.is_autotype and not then_type.is_autotype:
-                self.visit(node.elseexp,scope,then_type.name)
-                node_type = then_type
-            
-            else:
-                common_parent = get_common_parent(then_type,else_type ,self.context)
-                if not common_parent:
-                    common_parent = 'Object'
-                try:
-                    node_type = self.context.get_type(common_parent)    
-                except SemanticException:
-                    text = 'special error'
-                    node_type = ErrorType()
-                    error = SemanticError(node.column,node.row,text)
-                    self.errors.append(error)
-                    
+
+            common_parent = get_common_parent(then_type,else_type ,self.context)
+            if not common_parent:
+                common_parent = 'Object'
+            try:
+                node_type = self.context.get_type(common_parent)    
+            except SemanticException:
+                text = 'special error'
+                node_type = ErrorType()
+                error = SemanticError(node.column,node.row,text)
+                self.errors.append(error)
+                
         
         node.computed_type = node_type
     ##### Revisar xq no se hace nada con el node_type, o cual seria el tipo de este nodo
@@ -391,12 +350,7 @@ class TypeChecker:
         for arg in node.params:
             if arg.type == 'SELF_TYPE':
                 arg.type = self.current_type.name
-            # if arg.type == 'AUTO_TYPE':
-            #     new_type_name = 't^' + str(self.counter)
-            #     self.counter+= 1
-            #     new_type = self.context.create_type(new_type_name)
-            #     new_type.is_autotype = True
-            #     arg.type = new_type_name
+
             self.visit(arg,child_scope)
             arg_type = arg.computed_type
             
@@ -417,25 +371,17 @@ class TypeChecker:
             error = SemanticError(node.column,node.row,text)
             self.errors.append(error)
     
-        if node_type.is_autotype and expected:
-            self.current_type.substitute_type(node_type,self.context.get_type(expected))
-            scope.substitute_type(node_type,self.context.get_type(expected))
-            self.inference.append((node_type.name,expected))
         
         if node.expr:
             self.visit(node.expr, scope,expected_child)
             expr_type = node.expr.computed_type
 
-            if node_type.is_autotype:
-                self.current_type.substitute_type(node_type,expr_type)
-                scope.substitute_type(node_type,expr_type)
-                self.inference.append((node_type.name,expr_type.name))
-                node_type = expr_type
-            else:
-                if not expr_type.conforms_to(node_type):
-                    text = f'In class "{self.current_type.name}", Let result: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
-                    error = TypeError(node.column,node.row,text)
-                    self.errors.append(error)
+            if not expr_type.conforms_to(node_type):
+                # text = f'In class "{self.current_type.name}", Let result: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
+                text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                    replace('%s', node_type.name, 1).replace('%s', node_type.name, 1)
+                error = TypeError(node.column,node.row,text)
+                self.errors.append(error)
 
         if not scope.is_local(node.id):
             scope.define_variable(node.id, node_type)
@@ -481,12 +427,6 @@ class TypeChecker:
         if scope.is_defined(node.id):
             var = scope.find_variable(node.id)
             node_type = var.type
-            if node_type.is_autotype:
-                node_type = expr_type
-                self.inference.append((var.type.name,expr_type.name))
-                self.current_type.substitute_type(var.type,expr_type)
-                scope.substitute_type(var.type,expr_type)
-                var.type = expr_type
             
             if var.name == 'self':
                 text = f'In class {self.current_type.name}: '+ SELF_IS_READONLY
@@ -513,8 +453,6 @@ class TypeChecker:
             else:
                 self.visit(node.obj, scope)
                 obj_type = node.obj.computed_type####
-                if obj_type.is_autotype:
-                    raise SemanticException(f'You try to call {node.id} from non deducible expression')
 
             if node.parent and not obj_type.has_parent(self.context.get_type(node.parent)):
                 text = f'In class {self.current_type.name}: '+ f'Type "{obj_type.name}" has no parent "{node.parent}" in function call of "{node.id}"'
@@ -524,26 +462,12 @@ class TypeChecker:
             try:
                 obj_method = obj_type.get_method(node.id)
 
-                # if expected and obj_method.return_type.is_autotype:
-                #     self.inference.append((obj_method.return_type.name,expected))
-                #     scope.substitute_type(obj_method.return_type,self.context.get_type(expected))
-                #     self.current_type.substitute_type(obj_method.return_type,self.context.get_type(expected))
-                #     obj_method.return_type = self.context.get_type(expected)
-                
                 if len(node.args) == len(obj_method.param_types):
                     for i,params in enumerate(zip(node.args, obj_method.param_types)):
                         arg, param_type = params
                         self.visit(arg, scope,param_type.name)
                         arg_type = arg.computed_type
                         
-
-                        # if obj_method.param_types[i].is_autotype:
-                        #     self.inference.append((obj_method.param_types[i].name,arg_type.name))
-                        #     scope.substitute_type(obj_method.param_types[i],arg_type)
-                        #     self.current_type.substitute_type(obj_method.param_types[i],arg_type)
-                        #     obj_method.param_types[i] = arg_type
-                        #     param_type = arg_type
-
 
                         if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
                             text = f'In class {self.current_type.name} in function call of {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', param_type.name, 1)
@@ -553,10 +477,12 @@ class TypeChecker:
                     text = f' In class {self.current_type.name}: Method "{obj_method.name}" from "{obj_type.name}" only accepts {len(obj_method.param_types)} argument(s)'
                     error = SemanticError(node.column,node.row,text)
                     self.errors.append(error)
-                
-                node_type = obj_method.return_type
-                if node_type.name == 'self':
-                    node_type = self.current_type
+
+                if obj_method.return_type.name == 'self':
+                    node_type = obj_type
+                else:
+                    node_type = obj_method.return_type
+                    
             except SemanticException as ex:
                 text = f'In class {self.current_type.name}: '+ ex.text
                 node_type = ErrorType()
@@ -582,7 +508,10 @@ class TypeChecker:
         right_type = node.right.computed_type
         
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
-            text = f'In class {self.current_type.name}: '+INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
+            # text = f'In class {self.current_type.name}: '+INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
+            text = INVALID_OPERATION.replace('%s', left_type.name, 1).\
+                replace('%s',node.lex,1).replace('%s', right_type.name, 1)
+
             node_type = ErrorType()
             error = TypeError(node.column,node.row,text)
             self.errors.append(error)
@@ -600,7 +529,9 @@ class TypeChecker:
         right_type = node.right.computed_type
         
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
-            text = f'In class {self.current_type.name}: '+ INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
+            # text = f'In class {self.current_type.name}: '+ INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
+            text = INVALID_OPERATION.replace('%s', left_type.name, 1).\
+                replace('%s',node.lex,1).replace('%s', right_type.name, 1)
             node_type = ErrorType()
             error = TypeError(node.column,node.row,text)
             self.errors.append(error)
@@ -635,26 +566,18 @@ class TypeChecker:
 
     @visitor.when(VariableNode)
     def visit(self, node, scope,expected = None):
-        try:
-            node_type = self.context.get_type(node.lex)
-            text = f'In class {self.current_type.name}: ' + TYPE_AS_VARIABLE.replace('%s',node.lex,1)
-            node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
-            self.errors.append(error)
-        except SemanticException:
-            if scope.is_defined(node.lex):
-                var = scope.find_variable(node.lex)
-                if var.type.is_autotype and expected:
-                    self.inference.append((var.type.name,expected))
-                    self.current_type.substitute_type(var.type,self.context.get_type(expected))
-                    scope.substitute_type(self.context.get_type(var.type.name),self.context.get_type(expected))
-                    var.type = self.context.get_type(expected)
-                    
-                node_type = self.context.get_type(var.type.name)    
-            else:
-                text = f'In class {self.current_type.name}: '+ VARIABLE_NOT_DEFINED.replace('%s', node.lex, 1).replace('%s', self.current_feature.name, 1)
+        
+        if scope.is_defined(node.lex):
+            var = scope.find_variable(node.lex)
+            node_type = self.context.get_type(var.type.name)    
+        else:
+            try:
+                var = self.current_type.get_attribute(node.lex)
+                node_type = self.context.get_type(var.type.name)
+            except SemanticException as ex:
+                # text = f'In class {self.current_type.name}: '+ VARIABLE_NOT_DEFINED.replace('%s', node.lex, 1).replace('%s', self.current_feature.name, 1)
                 node_type = ErrorType()
-                error = SemanticError(node.column,node.row,text)
+                error = SemanticError(node.column,node.row,ex.text)
                 self.errors.append(error)
 
         node.computed_type = node_type

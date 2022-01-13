@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "semantic/assignment1.cl"
+    add = "semantic/attributes4.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
