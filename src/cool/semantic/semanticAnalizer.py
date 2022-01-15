@@ -1,5 +1,8 @@
-from cool.semantic.Visitors import TypeChecker,TypeBuilder,TypeCollector #,TypeInferences,FormatVisitor
-# from Tools import inference_cleaner,inference_solver
+from cool.semantic.type_builder import TypeBuilder
+from cool.semantic.type_checker import TypeChecker
+from cool.semantic.type_collector import TypeCollector
+
+
 
 def run_semantic_pipeline(ast):
     errors = []
