@@ -54,13 +54,12 @@ class TypeChecker:
             expr_type = node.expr.computed_type
             
             if not expr_type.conforms_to(node_type):
-                # text = f'In class "{self.current_type.name}" ' + f'in feature "{node.id}": ' +INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).replace('%s',node_type.name,1)
                 text = INCOMPATIBLE_TYPES.replace('%s',expr_type.name,1).\
                     replace('%s', node.id, 1).replace('%s',node_type.name,1)
                 error = TypeError(node.column,node.row,text)
                 self.errors.append(error)
 
-                
+         
     
     @visitor.when(FuncDeclarationNode)
     def visit(self, node, scope,expected = None):
@@ -84,16 +83,22 @@ class TypeChecker:
         if method_rtn_type.name != 'Void':
             try:
                 if not expr_type.conforms_to(method_rtn_type):
-                    # text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
-                    text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                        replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
+                    text = f'In class "{self.current_type.name}" \
+                    in method "{self.current_feature.name}" return type: \
+                    ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                    replace('%s', method_rtn_type.name, 1)
+                    # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                    #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
 
                     error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
             except Exception:
-                # text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', method_rtn_type.name, 1)
-                text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                    replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
+                text = f'In class "{self.current_type.name}" \
+                in method "{self.current_feature.name}" : ' + \
+                INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                replace('%s', method_rtn_type.name, 1)
+                # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
                 error = TypeError(node.column,node.row,text)
                 self.errors.append(error)
 
@@ -211,7 +216,6 @@ class TypeChecker:
             node_type = ErrorType()
             error = SemanticError(node.column,node.row,text)
             self.errors.append(error)
-    
         
         if node.expr:
             self.visit(node.expr, scope,expected_child)
@@ -259,39 +263,30 @@ class TypeChecker:
             
             
     @visitor.when(AssignNode)
-    def visit(self, node, scope,expected = None):
-        if scope.is_defined(node.id):
-            var = scope.find_variable(node.id)
-            node_type = var.type
-            if not node_type.is_autotype:
-                expected = node_type.name
-            elif expected:
-                self.inference.append((node_type.name,expected))
-                scope.substitute_type(node_type,self.context.get_type(expected))
-                self.current_type.substitute_type(node_type,self.context.get_type(expected))
+    def visit(self, node, scope, expected=None):
+        self.visit(node.expr, scope)
+        node_type = node.expr.computed_type
 
-        self.visit(node.expr, scope, expected)
-            
-        expr_type = node.expr.computed_type
-        
         if scope.is_defined(node.id):
             var = scope.find_variable(node.id)
-            node_type = var.type
-            
+
             if var.name == 'self':
-                text = f'In class {self.current_type.name}: '+ SELF_IS_READONLY
-                error = SemanticError(node.column,node.row,text)
+                text = SELF_IS_READONLY 
+                error = SemanticError(node.column, node.row,text)
                 self.errors.append(error)
-            elif not expr_type.conforms_to(node_type):
-                text = f'In class "{self.current_type.name}", assign operation to "{node.id}": '+INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
-                error = TypeError(node.column,node.row,text)
+                node_type = ErrorType()
+            elif not node_type.conforms_to(var.type):
+                text = INCOMPATIBLE_TYPES.replace(
+                    '%s', node_type.name, 1).replace('%s', var.type.name, 1)
+                error = TypeError(node.column, node.row, text)
                 self.errors.append(error)
+                node_type = ErrorType()
         else:
-            text = f'In class "{self.current_type.name}", assign operation to "{node.id}": '+VARIABLE_NOT_DEFINED.replace('%s', node.id, 1).replace('%s', self.current_feature.name, 1)
-            node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            text = VARIABLE_NOT_DEFINED.replace('%s', node.id, 1)
+            error = NameError(node.column,node.row,text)
             self.errors.append(error)
-        
+            node_type = ErrorType()
+
         node.computed_type = node_type
     
     @visitor.when(CallNode)
