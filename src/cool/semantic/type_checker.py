@@ -148,16 +148,13 @@ class TypeChecker:
         self.visit(node.elseexp, scope,expected)
         else_type = node.elseexp.computed_type
         
-  
         if not if_type.conforms_to(BoolType()):
-            text = f'In class "{self.current_type.name}": ' +INVALID_CONDITION.replace('%s', 'IF', 1)
+            text = INVALID_CONDITION.replace('%s', 'if', 1)
             node_type = ErrorType()
             error = SemanticError(node.column,node.row,text)
             self.errors.append(error)
             
-            
         else:
-
             common_parent = get_common_parent(then_type,else_type ,self.context)
             if not common_parent:
                 common_parent = 'Object'
@@ -181,7 +178,7 @@ class TypeChecker:
         body_type = node.body.computed_type
         
         if not condition_type.conforms_to(BoolType()):
-            text = f'In class "{self.current_type.name}": ' + INVALID_CONDITION.replace('%s', 'While', 1)
+            text = INVALID_CONDITION.replace('%s', 'while', 1)
             # node_type = ErrorType()
             error = SemanticError(node.column,node.row,text)
             self.errors.append(error)
@@ -242,11 +239,20 @@ class TypeChecker:
         
         self.visit(node.case, scope)
         body_type = None
+        brnaches_type = []
         
         for branch in node.body:
+            if branch.type in brnaches_type:
+                text = f'Duplicate branch {branch.type} in case statement.'
+                error = SemanticError(branch.column,branch.row,text)
+                self.errors.append(error)
+            else:
+                brnaches_type.append(branch.type)
+
             self.visit(branch,scope.create_child())
             body_type_name = get_common_parent(branch.computed_type,body_type,self.context)
             body_type = self.context.get_type(body_type_name)
+        
         
         node_type = self.context.get_type(body_type_name)
         node.computed_type = node_type
@@ -307,11 +313,16 @@ class TypeChecker:
                 obj_method = obj_type.get_method(node.id)
 
                 if len(node.args) == len(obj_method.param_types):
-                    for i,params in enumerate(zip(node.args, obj_method.param_types)):
+                    for _,params in enumerate(zip(node.args, obj_method.param_types)):
                         arg, param_type = params
-                        self.visit(arg, scope,param_type.name)
-                        arg_type = arg.computed_type
-                        
+                        try:
+                            self.visit(arg, scope,param_type.name)
+                            arg_type = arg.computed_type
+                        except SemanticException as ex:
+                            text = f'In class {self.current_type.name}: '+ ex.text
+                            node_type = ErrorType()
+                            error = SemanticError(node.column,node.row,text)
+                            self.errors.append(error)
 
                         if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
                             text = f'In class {self.current_type.name} in function call of {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', param_type.name, 1)
@@ -330,7 +341,7 @@ class TypeChecker:
             except SemanticException as ex:
                 text = f'In class {self.current_type.name}: '+ ex.text
                 node_type = ErrorType()
-                error = SemanticError(node.column,node.row,text)
+                error = AttributeError(node.column,node.row,text)
                 self.errors.append(error)
 
         except SemanticException as ex:
@@ -421,7 +432,7 @@ class TypeChecker:
             except SemanticException as ex:
                 # text = f'In class {self.current_type.name}: '+ VARIABLE_NOT_DEFINED.replace('%s', node.lex, 1).replace('%s', self.current_feature.name, 1)
                 node_type = ErrorType()
-                error = SemanticError(node.column,node.row,ex.text)
+                error = NameError(node.column,node.row,ex.text)
                 self.errors.append(error)
 
         node.computed_type = node_type

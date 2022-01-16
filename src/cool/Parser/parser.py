@@ -58,8 +58,11 @@ class Parser():
         # col = self.lexer.get_column(p.slice[2])
         col = p.slice[2].column
         line = p.lineno(1)
-        p[0] = ClassDeclarationNode(p[2], p[4],'Object', line, col) if len(p)== 6\
-                else ClassDeclarationNode(p[2], p[6], p[4], line, col)
+        if len(p) == 6:
+            p[0] = ClassDeclarationNode(p[2], p[4],'Object', line, col)
+        else: 
+            col = p.slice[4].column
+            p[0] = ClassDeclarationNode(p[2], p[6], p[4], line, col)
 
 
     def p_feature_list(self,p):
@@ -124,7 +127,7 @@ class Parser():
         '''declar : ID COLON TYPE
                   | ID COLON TYPE LARROW expr'''
         # col = self.lexer.get_column(p.slice[1])
-        col = p.slice[1].column
+        col = p.slice[3].column
         line = p.lineno(1)
         p[0] = DeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
                 else DeclarationNode(p[1],p[3],p[5], line, col)
@@ -138,7 +141,7 @@ class Parser():
     def p_case_assign(self,p):
         '''case_assign : ID COLON TYPE RARROW expr SEMI'''
         # col = self.lexer.get_column(p.slice[1])
-        col = p.slice[1].column
+        col = p.slice[3].column
         line = p.lineno(1)
         p[0] = VarDeclarationNode(p[1],p[3],p[5], line, col)
 

@@ -54,7 +54,7 @@ class TypeBuilder:
         try:
             self.current_type.define_attribute(node.id, attr_type)
         except SemanticException as ex:
-            error = SemanticError(node.column,node.row,ex.text)
+            error = NameError(node.column,node.row,ex.text)
             self.errors.append(error)
         
     @visitor.when(FuncDeclarationNode)

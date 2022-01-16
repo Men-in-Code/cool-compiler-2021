@@ -49,7 +49,8 @@ class TypeCollector(object):
             self.context.create_type(node.id)
             
             if node.parent in ['Int','String','Bool','SELF_TYPE']:
-                error = SemanticError(node.column,node.row,"can't inherit from built-in types")
+                error = SemanticError(node.column,node.row,\
+                    f"Class {node.id} cannot inherit class {node.parent}.")
                 self.errors.append(error)
                 
             self.type_level[node.id] = node.parent

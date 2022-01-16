@@ -5,6 +5,11 @@ class SemanticException(Exception):
     def text(self):
         return self.args[0]
 
+class NameException(Exception):
+    @property
+    def text(self):
+        return self.args[0]
+
 class Attribute:
     def __init__(self, name, typex):
         self.name = name
@@ -274,7 +279,7 @@ class Context:
 
     def create_type(self, name:str):
         if name in self.types:
-            raise SemanticException(f'Type with the same name ({name}) already in context.')
+            raise SemanticException(f'Redefinition of basic class {name}.')
         typex = self.types[name] = Type(name)
         return typex
 
