@@ -1,3 +1,4 @@
+from pydoc import text
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import SemanticException
@@ -33,7 +34,8 @@ class TypeCollector(object):
             except KeyError:
                 return 0
             if parent == 0:
-                self.errors.append(SemanticError(node.column,node.row,"cyclic inheritance"))
+                text = f'Class {def_class.id}, or an ancestor of {def_class.id}, is involved in an inheritance cycle.'
+                self.errors.append(SemanticError(def_class.column,def_class.row,text))
             elif type(parent) is not int:
                 self.type_level[typex] = 0 if parent else 1
                 if type(parent) is str:
