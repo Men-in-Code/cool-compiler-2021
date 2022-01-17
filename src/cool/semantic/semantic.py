@@ -394,3 +394,6 @@ def multiple_get_common_parent(args, context):
             least_type = get_common_parent(least_type,t,context)
 
         return least_type
+
+def is_local(vars,new_var):
+    return any(new_var == var.name for var in vars)

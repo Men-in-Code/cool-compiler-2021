@@ -2,7 +2,7 @@ from pydoc import text
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
-from cool.semantic.semantic import get_common_parent,multiple_get_common_parent
+from cool.semantic.semantic import get_common_parent,multiple_get_common_parent,is_local
 from cool.semantic.semantic import SemanticException
 from cool.semantic.semantic import ErrorType, IntType, BoolType
 from cool.utils.Errors.semantic_errors import *
@@ -113,7 +113,7 @@ class TypeChecker:
             text = "self cannot be the name of a formal parameter"
             error = SemanticError(node.column, node.row, text)
             self.errors.append(error)
-        elif not node.id in scope.locals:
+        elif not is_local(scope.locals,node.id):
             scope.define_variable(node.id, var_type)
         else:
             text = MULTIPLY_DIFINED_PARAMTER.replace('%s', node.id, 1)
@@ -475,7 +475,7 @@ class TypeChecker:
         if expr_type.name != 'Bool':
             text = WRONG_TYPE_EXPECTED.replace('%s', 'not', 1).\
                 replace('%s', expr_type.name, 1).replace('%s','Bool', 1)
-            error = SemanticError(node.column, node.row, text)
+            error = TypeError(node.column, node.row, text)
             self.errors.append(error)
             node_type = ErrorType()
 
@@ -491,7 +491,7 @@ class TypeChecker:
         if expr_type.name != 'Int':
             text = WRONG_TYPE_EXPECTED.replace('%s', '~', 1).\
                 replace('%s', expr_type.name, 1).replace('%s','Int', 1)
-            error = SemanticError(node.column, node.row, text)
+            error = TypeError(node.column, node.row, text)
             self.errors.append(error)
             node_type = ErrorType()
 
