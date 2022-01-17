@@ -1,7 +1,7 @@
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
-from cool.semantic.semantic import get_common_parent
+from cool.semantic.semantic import get_common_parent,multiple_get_common_parent
 from cool.semantic.semantic import SemanticException
 from cool.semantic.semantic import ErrorType, IntType, BoolType
 from cool.utils.Errors.semantic_errors import *
@@ -131,7 +131,7 @@ class TypeChecker:
         # else:
         #     self.errors.append(f'In class "{self.current_type.name}": ' + LOCAL_ALREADY_DEFINED.replace('%s', node.id, 1).replace('%s', self.current_feature.name, 1))
         
-        node.computed_type = node_type
+        node.computed_type = expr_type
             
     @visitor.when(ExpressionGroupNode)
     def visit(self, node, scope,expected = None):
@@ -167,9 +167,9 @@ class TypeChecker:
         else:
             common_parent = get_common_parent(then_type,else_type ,self.context)
             if not common_parent:
-                common_parent = 'Object'
+                common_parent.name = 'Object'
             try:
-                node_type = self.context.get_type(common_parent)    
+                node_type = self.context.get_type(common_parent.name)    
             except SemanticException:
                 text = 'special error'
                 node_type = ErrorType()
@@ -249,6 +249,7 @@ class TypeChecker:
         self.visit(node.case, scope)
         body_type = None
         brnaches_type = []
+        expr_types = []
         
         for branch in node.body:
             if branch.type in brnaches_type:
@@ -259,11 +260,10 @@ class TypeChecker:
                 brnaches_type.append(branch.type)
 
             self.visit(branch,scope.create_child())
-            body_type_name = get_common_parent(branch.computed_type,body_type,self.context)
-            body_type = self.context.get_type(body_type_name)
+            expr_types.append(branch.computed_type)
         
         
-        node_type = self.context.get_type(body_type_name)
+        node_type = multiple_get_common_parent(expr_types,self.context)
         node.computed_type = node_type
             
             
@@ -443,8 +443,8 @@ class TypeChecker:
             node_type = self.context.get_type(node.lex)
             if node_type.name == 'SELF_TYPE':
                 node_type = self.current_type
-            elif node_type.is_autotype:
-                raise SemanticException(f'In class {self.current_type.name}: '+'You are trying to instantiate an AUTO_TYPE ')
+            # elif node_type.is_autotype:
+            #     raise SemanticException(f'In class {self.current_type.name}: '+'You are trying to instantiate an AUTO_TYPE ')
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
             node_type = ErrorType()

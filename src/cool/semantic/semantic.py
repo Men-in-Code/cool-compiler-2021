@@ -356,16 +356,16 @@ class Scope:
 
 def get_common_parent(type_A, type_B = None, context = None):
     if type_B:
-        parent_listA = [type_A.name]
-        parent_listB = [type_B.name]
+        parent_listA = [type_A]
+        parent_listB = [type_B]
         common_parent = None
         while type_A.parent is not None:
-            parent_listA.append(type_A.parent.name)
+            parent_listA.append(type_A.parent)
             type_A = context.get_type(type_A.parent.name)
         parent_listA = reversed(parent_listA)
 
         while type_B.parent is not None:
-            parent_listB.append(type_B.parent.name)
+            parent_listB.append(type_B.parent)
             type_B = context.get_type(type_B.parent.name)
         parent_listB = reversed(parent_listB)
 
@@ -375,8 +375,17 @@ def get_common_parent(type_A, type_B = None, context = None):
             else:
                 break
     else:
-        common_parent = type_A.name
+        common_parent = type_A
 
     return common_parent 
 
+def multiple_get_common_parent(args, context):
+        least_type = args.pop(0)
     
+        for t in args:
+            if isinstance(least_type, ErrorType) or isinstance(t, ErrorType):
+                least_type = ErrorType()
+                return least_type
+            least_type = get_common_parent(least_type,t,context)
+
+        return least_type
