@@ -115,12 +115,12 @@ class TypeChecker:
         expr_type = node.expr.computed_type
         
         try:
-            node_type = self.context.get_type(node.type)
-            node_type = expr_type
+            self.context.get_type(node.type)
+            expr_type
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
         
         #if not expr_type.conforms_to(node_type):
