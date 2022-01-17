@@ -127,7 +127,7 @@ class TypeChecker:
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
             var_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
         
         scope.define_variable(node.id, var_type)
