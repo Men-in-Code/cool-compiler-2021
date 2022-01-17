@@ -1,4 +1,5 @@
 from pydoc import text
+from typing_extensions import Type
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
@@ -453,7 +454,7 @@ class TypeChecker:
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
             
         node.computed_type = node_type
@@ -468,7 +469,7 @@ class TypeChecker:
     def visit(self, node, scope,expected = None):
         self.visit(node.right, scope)
         expr_type = node.right.computed_type
-        node.computed_type = self.context.get_type('Bool')
+        node_type = self.context.get_type('Bool')
 
         if expr_type.name != 'Bool':
             text = WRONG_TYPE_EXPECTED.replace('%s', 'not', 1).\
@@ -484,7 +485,7 @@ class TypeChecker:
     def visit(self, node, scope,expected = None):
         self.visit(node.right, scope)
         expr_type = node.right.computed_type
-        node.computed_type = self.context.get_type('Int')
+        node_type = self.context.get_type('Int')
 
         if expr_type.name != 'Int':
             text = WRONG_TYPE_EXPECTED.replace('%s', '~', 1).\
