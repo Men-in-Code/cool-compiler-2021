@@ -173,20 +173,8 @@ class TypeChecker:
             error = TypeError(node.column,node.row,text)
             self.errors.append(error)
             
-        else:
-            common_parent = get_common_parent(then_type,else_type ,self.context)
-            if not common_parent:
-                common_parent.name = 'Object'
-            try:
-                node_type = self.context.get_type(common_parent.name)    
-            except SemanticException:
-                text = 'special error'
-                node_type = ErrorType()
-                error = SemanticError(node.column,node.row,text)
-                self.errors.append(error)
-                
-        
-        node.computed_type = node_type
+        node.computed_type = get_common_parent(then_type,else_type ,self.context)        
+
     ##### Revisar xq no se hace nada con el node_type, o cual seria el tipo de este nodo
     @visitor.when(WhileNode)
     def visit(self, node, scope,expected = None):

@@ -358,10 +358,13 @@ class Scope:
             self.parent.substitute_type(typeA,typeB)
 
 def get_common_parent(type_A, type_B = None, context = None):
+    if type_A.name == 'Error' or type_B.name == 'Error':
+        return ErrorType()
+
     if type_B:
         parent_listA = [type_A]
         parent_listB = [type_B]
-        common_parent = None
+        common_parent = type_B
         while type_A.parent is not None:
             parent_listA.append(type_A.parent)
             type_A = context.get_type(type_A.parent.name)
