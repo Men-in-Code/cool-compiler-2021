@@ -114,7 +114,7 @@ class TypeChecker:
             text = "self cannot be the name of a formal parameter"
             error = SemanticError(node.column, node.row, text)
             self.errors.append(error)
-        elif not scope.is_defined(node.id):
+        elif not node.id in scope.locals:
             scope.define_variable(node.id, var_type)
         else:
             text = MULTIPLY_DIFINED_PARAMTER.replace('%s', node.id, 1)
