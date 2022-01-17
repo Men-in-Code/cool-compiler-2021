@@ -410,7 +410,7 @@ class TypeChecker:
             left_type.name != right_type.name:
             text = WRONG_COMPARISON.replace('%s', left_type.name, 1).\
             replace('%s', right_type.name, 1)
-            error = SemanticError( node.column,node.row,text)
+            error = TypeError( node.column,node.row,text)
             self.errors.append(error)
             node_type = ErrorType()
             
