@@ -40,5 +40,5 @@ if __name__ == '__main__':
         print(parser.errors[0])
         raise Exception()
 
-    # run_semantic_pipeline(ast)
+    run_semantic_pipeline(ast)
 
