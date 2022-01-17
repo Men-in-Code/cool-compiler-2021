@@ -84,7 +84,7 @@ class TypeBuilder:
         try:
             ret_type = VoidType() if node.type == 'void' else self.context.get_type(node.type)
         except SemanticException as ex:
-            error = SemanticError(node.column,node.row,ex.text)
+            error = TypeError(node.column,node.row,ex.text)
             self.errors.append(error)
             ret_type = ErrorType()
         

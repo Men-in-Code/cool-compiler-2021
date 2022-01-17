@@ -68,7 +68,6 @@ class TypeChecker:
         for param in node.params:
             self.visit(param, scope)
             
-
         method_rtn_type = self.current_feature.return_type
         if method_rtn_type.name != 'Void':
             new_expected = self.current_feature.return_type.name
