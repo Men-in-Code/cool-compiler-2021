@@ -65,9 +65,14 @@ class TypeChecker:
     def visit(self, node, scope,expected = None):
         self.current_feature = self.current_type.get_method(node.id)
         
-        for i,params in enumerate(zip(self.current_feature.param_names, self.current_feature.param_types)):
+        for _,params in enumerate(zip(self.current_feature.param_names, self.current_feature.param_types)):
             pname, ptype = params
-            scope.define_variable(pname, ptype)
+            if not scope.is_defined(pname):
+                scope.define_variable(pname, ptype)
+            else:
+                text = MULTIPLY_DIFINED_PARAMTER.replace('%s', pname, 1)
+                error = SemanticError(node.column,node.row,text)
+                self.errors.append(error)
             
 
         method_rtn_type = self.current_feature.return_type

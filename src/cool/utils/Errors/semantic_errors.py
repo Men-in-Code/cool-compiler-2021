@@ -6,10 +6,12 @@ LOCAL_ALREADY_DEFINED = 'Variable "%s" is already defined in method "%s".'
 INCOMPATIBLE_TYPES = 'Inferred type %s of initialization of attribute %s does not conform to declared type %s.'
 VARIABLE_NOT_DEFINED = 'Variable "%s" is not defined in "%s".'
 INVALID_OPERATION = 'non-Int arguments: %s %s %s.'
-TYPE_AS_VARIABLE = 'Type <%s> used as variable.'
+TYPE_AS_VARIABLE = 'Type %s used as variable.'
 INVALID_CONDITION = 'Predicate of \'%s\' does not have type Bool '
-INVALID_HERITAGE = 'Cant heritage from <%s>'
-INVALID_UNARY_OPERATION = 'Operation is not defined with <%s>'
+INVALID_HERITAGE = 'Cant heritage from %s'
+INVALID_UNARY_OPERATION = 'Operation is not defined with %s'
+MULTIPLY_DIFINED_PARAMTER = 'Formal parameter %s is multiply defined'
+
 
 class SemanticError(CoolError):
     def __init__(self, column: int, line: int, text: str):
