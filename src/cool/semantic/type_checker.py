@@ -217,7 +217,7 @@ class TypeChecker:
         except SemanticException as ex:
             text = f'In class "{self.current_type.name}": '+ ex.text
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
         
         if node.expr:
@@ -240,7 +240,6 @@ class TypeChecker:
         node.computed_type = node_type
         
         
-    
     @visitor.when(CaseNode)
     def visit(self, node, scope,expected = None): 
         
