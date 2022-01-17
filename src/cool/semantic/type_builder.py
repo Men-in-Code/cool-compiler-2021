@@ -29,7 +29,7 @@ class TypeBuilder:
                 parent_type = self.context.get_type(node.parent)
                 self.current_type.set_parent(parent_type)
             except SemanticException as ex:
-                error = SemanticError(node.column,node.row,ex.text)
+                error = TypeError(node.column,node.row,ex.text)
                 self.errors.append(error)
         else:
             parent_type = self.context.get_type('Object')
