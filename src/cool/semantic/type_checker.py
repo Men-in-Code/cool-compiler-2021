@@ -65,14 +65,8 @@ class TypeChecker:
     def visit(self, node, scope,expected = None):
         self.current_feature = self.current_type.get_method(node.id)
         
-        for _,params in enumerate(zip(self.current_feature.param_names, self.current_feature.param_types)):
-            pname, ptype = params
-            if not scope.is_defined(pname):
-                scope.define_variable(pname, ptype)
-            else:
-                text = MULTIPLY_DIFINED_PARAMTER.replace('%s', pname, 1)
-                error = SemanticError(node.column,node.row,text)
-                self.errors.append(error)
+        for param in node.params:
+            self.visit(param, scope)
             
 
         method_rtn_type = self.current_feature.return_type
@@ -88,9 +82,7 @@ class TypeChecker:
         if method_rtn_type.name != 'Void':
             try:
                 if not expr_type.conforms_to(method_rtn_type):
-                    text = f'In class "{self.current_type.name}" \
-                    in method "{self.current_feature.name}" return type: \
-                    ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                    text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type:' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
                     replace('%s', method_rtn_type.name, 1)
                     # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
                     #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
@@ -98,9 +90,7 @@ class TypeChecker:
                     error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
             except Exception:
-                text = f'In class "{self.current_type.name}" \
-                in method "{self.current_feature.name}" : ' + \
-                INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
+                text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
                 replace('%s', method_rtn_type.name, 1)
                 # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
                 #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
@@ -109,11 +99,29 @@ class TypeChecker:
 
         self.current_type.change_param(node.id,scope)
 
+    @visitor.when(ParamDeclarationNode)
+    def visit(self, node, scope,expected = None):
+        try:
+            var_type = self.context.get_type(node.type)
+        except SemanticException as ex:
+            var_type = ErrorType()
+            text = f'{ex.text} Of formal parameter {node.id}'
+            error = TypeError(node.column,node.row,text)
+            self.errors.append(error)
+
+        if node.id == 'self':
+            text = "self cannot be the name of a formal parameter"
+            error = SemanticError(node.column, node.row, text)
+            self.errors.append(error)
+        elif not scope.is_defined(node.id):
+            scope.define_variable(node.id, var_type)
+        else:
+            text = MULTIPLY_DIFINED_PARAMTER.replace('%s', node.id, 1)
+            error = SemanticError(node.column,node.row,text)
+            self.errors.append(error)
+
     @visitor.when(VarDeclarationNode)
     def visit(self, node, scope,expected = None):
-        self.visit(node.expr, scope)
-        expr_type = node.expr.computed_type
-        
         try:
             var_type = self.context.get_type(node.type)
         except SemanticException as ex:
@@ -123,6 +131,8 @@ class TypeChecker:
             self.errors.append(error)
         
         scope.define_variable(node.id, var_type)
+        self.visit(node.expr, scope)
+        expr_type = node.expr.computed_type
         #if not expr_type.conforms_to(node_type):
         #    self.errors.append(INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1))
           

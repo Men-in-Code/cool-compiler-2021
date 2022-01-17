@@ -78,6 +78,13 @@ class AttrDeclarationNode(DeclarationNode):
         self.row = row
         self.column = column
 
+class ParamDeclarationNode(DeclarationNode):
+    def __init__(self, idx, typex, row = 0, column = 0):
+        self.id = idx
+        self.type = typex
+        self.row = row
+        self.column = column
+
 class VarDeclarationNode(ExpressionNode):
     def __init__(self, idx, typex, expr, row = 0, column = 0):
         self.id = idx

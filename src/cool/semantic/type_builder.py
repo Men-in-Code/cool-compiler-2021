@@ -59,16 +59,19 @@ class TypeBuilder:
         
     @visitor.when(FuncDeclarationNode)
     def visit(self, node):
-        arg_names, arg_types = [], []
+        arg_names, arg_types, params_found = [], [], []
         
         for i,_ in enumerate(node.params):
-            idx,typex = node.params[i]
+            idx = node.params[i].id
+            typex = node.params[i].type
+            params_found.append((idx,typex))
             if typex == 'SELF_TYPE':
                 node.params[i] = (idx,self.current_type.name)
+                
         if node.type == 'SELF_TYPE':
             node.type = self.current_type.name
         
-        for idx, typex in node.params:
+        for idx, typex in params_found:
             try:
                 arg_type = self.context.get_type(typex)
             except SemanticException as ex:

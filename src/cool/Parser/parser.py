@@ -109,7 +109,9 @@ class Parser():
 
     def p_param(self,p):
         '''param : ID COLON TYPE'''
-        p[0] = (p[1],p[3])
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = ParamDeclarationNode(p[1],p[3],line,col) #(p[1],p[3])
 
     def p_expr_list(self,p):
         '''expr_list : expr SEMI expr_list
