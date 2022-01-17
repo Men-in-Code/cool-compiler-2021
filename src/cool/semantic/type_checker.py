@@ -401,6 +401,15 @@ class TypeChecker:
         right_type = node.right.computed_type
     
         node_type = BoolType()
+
+        if (left_type.name in ['Int', 'Bool', 'String'] or\
+            right_type.name in ['Int', 'Bool', 'String']) and\
+            left_type.name != right_type.name:
+            text = WRONG_COMPARISON.replace('%s', left_type.name, 1).\
+            replace('%s', right_type.name, 1)
+            error = SemanticError( node.column,node.row,text)
+            self.errors.append(error)
+            node_type = ErrorType()
             
         node.computed_type = node_type
     

@@ -11,6 +11,7 @@ INVALID_CONDITION = 'Predicate of \'%s\' does not have type Bool '
 INVALID_HERITAGE = 'Cant heritage from %s'
 INVALID_UNARY_OPERATION = 'Operation is not defined with %s'
 MULTIPLY_DIFINED_PARAMTER = 'Formal parameter %s is multiply defined'
+WRONG_COMPARISON = 'Illegal comparison between basic types %s and %s.'
 
 
 class SemanticError(CoolError):
