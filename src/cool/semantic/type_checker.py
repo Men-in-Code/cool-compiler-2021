@@ -115,14 +115,14 @@ class TypeChecker:
         expr_type = node.expr.computed_type
         
         try:
-            self.context.get_type(node.type)
-            expr_type
+            var_type = self.context.get_type(node.type)
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
-            node_type = ErrorType()
-            error = TypeError(node.column,node.row,text)
+            var_type = ErrorType()
+            error = SemanticError(node.column,node.row,text)
             self.errors.append(error)
         
+        scope.define_variable(node.id, var_type)
         #if not expr_type.conforms_to(node_type):
         #    self.errors.append(INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1))
           
@@ -443,8 +443,6 @@ class TypeChecker:
             node_type = self.context.get_type(node.lex)
             if node_type.name == 'SELF_TYPE':
                 node_type = self.current_type
-            # elif node_type.is_autotype:
-            #     raise SemanticException(f'In class {self.current_type.name}: '+'You are trying to instantiate an AUTO_TYPE ')
         except SemanticException as ex:
             text = f'In class {self.current_type.name}: '+ ex.text
             node_type = ErrorType()

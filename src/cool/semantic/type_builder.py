@@ -47,7 +47,7 @@ class TypeBuilder:
             else:
                 attr_type = self.context.get_type(node.type)  
         except SemanticException as ex:
-            error = SemanticError(node.column,node.row,ex.text)
+            error = TypeError(node.column,node.row,ex.text)
             self.errors.append(error)
             attr_type = ErrorType()
             
