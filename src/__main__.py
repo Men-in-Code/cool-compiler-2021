@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "semantic/inheritance3.cl"
+    add = "lexer/iis3.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -40,4 +40,4 @@ if __name__ == '__main__':
         print(parser.errors[0])
         raise Exception()
 
-    run_semantic_pipeline(ast)
+    # run_semantic_pipeline(ast)
