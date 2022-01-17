@@ -12,6 +12,7 @@ INVALID_HERITAGE = 'Cant heritage from %s'
 INVALID_UNARY_OPERATION = 'Operation is not defined with %s'
 MULTIPLY_DIFINED_PARAMTER = 'Formal parameter %s is multiply defined'
 WRONG_COMPARISON = 'Illegal comparison between basic types %s and %s.'
+WRONG_TYPE_EXPECTED = ' Argument of \'%s\' has type %s instead of %s.'
 
 
 class SemanticError(CoolError):
