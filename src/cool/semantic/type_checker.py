@@ -212,6 +212,10 @@ class TypeChecker:
     @visitor.when(DeclarationNode)
     def visit(self, node, scope,expected = None):
         expected_child = node.type
+        if node.id == 'self':
+            text = '\'self\' cannot be bound in a \'let\' expression.'
+            error = SemanticError(node.column,node.row,text)
+            self.errors.append(error)
         try:
             node_type = self.context.get_type(node.type)
         except SemanticException as ex:

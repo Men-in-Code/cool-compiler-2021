@@ -126,9 +126,9 @@ class Type:
             except SemanticException:
                 raise SemanticException(f'Method "{name}" is not defined in {self.name}.')
 
-    def define_method(self, name:str, param_names:list, param_types:list, return_type):
-        if name in self.methods:
-            raise SemanticException(f'Method "{name}" already defined in {self.name}')
+    # def define_method(self, name:str, param_names:list, param_types:list, return_type):
+    #     if name in self.methods:
+    #         raise SemanticException(f'Method "{name}" already defined in {self.name}')
             # raise SemanticError(f'Method "{name}" already defined in {self.name} with a different signature.')
 
         method = self.methods[name] = Method(name, param_names, param_types, return_type)
@@ -136,17 +136,16 @@ class Type:
     
     # my method, change it in future
     def define_method(self, name:str, param_names:list, param_types:list, return_type):
+        if name in self.methods:
+            raise SemanticException(f'Method "{name}" already defined in {self.name}')
         try:
             method = self.get_method(name)
         except SemanticException:
             pass
         else:
-            has_autotype_param = [param for param in param_types if param.is_autotype]
             if method.return_type != return_type or method.param_types != param_types:
                 raise SemanticException(f'Method "{name}" already defined in {self.name} with a different signature.')
             ##############METHOD NO HEREDA AUTO)TYPE
-            elif method.return_type.is_autotype or ( len(has_autotype_param)!= 0):
-                raise SemanticException(f'Method "{name}" has AUTO_TYPE params and you cant redefine it')
 
         method = self.methods[name] = Method(name, param_names, param_types, return_type)
         return method
