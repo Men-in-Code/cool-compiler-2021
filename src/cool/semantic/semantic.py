@@ -62,6 +62,9 @@ class Type:
                 raise SemanticException(f'Attribute "{name}" is not defined in {self.name}.')
 
     def define_attribute(self, name:str, typex):
+        if name == 'self':
+            raise SemanticException(
+                "'self' cannot be the name of an attribute")
         try:
             self.get_attribute(name)
         except SemanticException:
