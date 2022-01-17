@@ -25,6 +25,7 @@ if __name__ == '__main__':
     tokens = lexer.tokenize()
 
 
+
     if (len(lexer.errors)!= 0):
         for e in lexer.errors:
             print(e)
