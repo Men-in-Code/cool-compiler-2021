@@ -156,7 +156,7 @@ class TypeChecker:
         if not if_type.conforms_to(BoolType()):
             text = INVALID_CONDITION.replace('%s', 'if', 1)
             node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
             
         else:
