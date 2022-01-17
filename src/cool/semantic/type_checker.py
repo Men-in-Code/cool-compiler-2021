@@ -189,7 +189,7 @@ class TypeChecker:
         if not condition_type.conforms_to(BoolType()):
             text = INVALID_CONDITION.replace('%s', 'while', 1)
             # node_type = ErrorType()
-            error = SemanticError(node.column,node.row,text)
+            error = TypeError(node.column,node.row,text)
             self.errors.append(error)
                 
         node.computed_type = ObjectType()
