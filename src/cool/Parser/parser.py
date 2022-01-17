@@ -245,7 +245,7 @@ class Parser():
         p[0] = NegateNode(p[2], line, col)
     
     def p_unary_isvoid(self,p):
-        '''unary : isvoid unary'''
+        '''unary : isvoid expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
