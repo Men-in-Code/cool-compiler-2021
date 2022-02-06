@@ -133,13 +133,6 @@ class TypeChecker:
         scope.define_variable(node.id, var_type)
         self.visit(node.expr, scope)
         expr_type = node.expr.computed_type
-        #if not expr_type.conforms_to(node_type):
-        #    self.errors.append(INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1))
-          
-        # if not scope.is_defined(node.id):
-        #     scope.define_variable(node.id, node_type)
-        # else:
-        #     self.errors.append(f'In class "{self.current_type.name}": ' + LOCAL_ALREADY_DEFINED.replace('%s', node.id, 1).replace('%s', self.current_feature.name, 1))
         
         node.computed_type = expr_type
             
