@@ -32,9 +32,6 @@ class A {
         }
     };
     b : Int ;
-};
-class Main inherits IO {
-  main(): IO { out_string("Hello World")};
 };'''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
