@@ -38,34 +38,68 @@ class LocalNode(Node):
 
 class InstructionNode(Node):
     pass
-
-class AssignNode(InstructionNode):
+ 
+class AssignNode(InstructionNode): # Operation "="
     def __init__(self, dest, source):
         self.dest = dest
         self.source = source
 
-class ArithmeticNode(InstructionNode):
+class BinaryNode(InstructionNode): #Binary Operations
     def __init__(self, dest, left, right):
         self.dest = dest
         self.left = left
         self.right = right
 
-class PlusNode(ArithmeticNode):
+class UnaryNode(InstructionNode): #Unary Operations
+    def __init__(self, dest, right):
+        self.dest = dest
+        self.right = right
+
+class WhileNode(InstructionNode): #7.6 Loops
     pass
 
-class MinusNode(ArithmeticNode):
+class BlockNode(InstructionNode): #7.7 Blocks
     pass
 
-class StarNode(ArithmeticNode):
+class LetNode(InstructionNode): #7.8 Let
     pass
 
-class DivNode(ArithmeticNode):
+class CaseNode(InstructionNode): #7.0 Case
+    def __init__(self,expr,expr_list,label_list):
+        self.main_expr = expr
+        self.expr_list = expr_list
+        self.label = label_list
+
+class InstantiateNode(InstructionNode): #7.10 New
     pass
+
+class IsVoidNode(InstructionNode): #7.11 IsVoid
+    def __init__(self, expresion, result):
+        self.expresion = expresion
+        self.result = result
+    pass
+class IfNode(InstructionNode):
+    pass
+
+
+
+class PlusNode(BinaryNode):
+    pass
+
+class MinusNode(BinaryNode):
+    pass
+
+class StarNode(BinaryNode):
+    pass
+class DivNode(BinaryNode):
+    pass
+
+
 
 class GetAttribNode(InstructionNode):
-    def __init__(self,instance,inst_type,attribute,dest):
+    def __init__(self,instance,stype,attribute,dest):
         self.instance = instance
-        self.inst_type = inst_type
+        self.stype = stype
         self.attribute = attribute
         self.dest = dest
 
@@ -75,7 +109,6 @@ class SetAttribNode(InstructionNode):
         self.value = value
         self.attribute = attribute
         self.dest = dest
-    pass
 
 class GetIndexNode(InstructionNode):
     pass
@@ -97,14 +130,17 @@ class TypeOfNode(InstructionNode):
         self.dest = dest
 
 class LabelNode(InstructionNode):
-    pass
+    def __init__(self,label):
+        self.label = label
 
 class GotoNode(InstructionNode):
-    pass
+    def __init__(self,label):
+        self.label = label
 
 class GotoIfNode(InstructionNode):
-    pass
-
+    def __init__(self,val,label):
+        self.val = val
+        self.label = label
 class StaticCallNode(InstructionNode):
     def __init__(self, function, dest):
         self.function = function
@@ -129,18 +165,18 @@ class LoadNode(InstructionNode):
         self.dest = dest
         self.msg = msg
 
-class LengthNode(InstructionNode):
-    pass
 
-class ConcatNode(InstructionNode):
-    pass
 
-class PrefixNode(InstructionNode):
-    pass
+#TypesNodes
+class IntNode(InstructionNode):
+    def __init__(self,value):
+        self.value = value
 
-class SubstringNode(InstructionNode):
-    pass
+class StringNode(InstructionNode):
+    def __init__(self,value):
+        self.value = value
 
+#Function Nodes
 class ToStrNode(InstructionNode):
     def __init__(self, dest, ivalue):
         self.dest = dest
@@ -153,9 +189,45 @@ class ReadNode(InstructionNode):
 class PrintNode(InstructionNode):
     def __init__(self, str_addr):
         self.str_addr = str_addr
-
-class HaltNode(InstructionNode):
+class AbortNode(InstructionNode):
     pass
+class TypeNameNode(InstructionNode):
+    def __init__(self, type, result):
+        self.type = type
+        self.result = result
+class CopyNode(InstructionNode):
+    def __init__(self, type, result):
+        self.type = type
+        self.result = result
+class PrintStringNode(PrintNode):
+    pass
+class PrintIntNode(PrintNode):
+    pass
+class ReadStringNode(ReadNode):
+    def __init__(self, dest, msg_readed):
+        self.dest = dest
+        self.msg_readed = msg_readed
+class ReadIntNode(ReadNode):
+    def __init__(self, dest, num_readed):
+        self.dest = dest
+        self.num_readed = num_readed
+class LengthNode(InstructionNode):
+    def __init__(self, strVar, result):
+        self.str = strVar
+        self.length = result
+class ConcatNode(InstructionNode):
+    def __init__(self, strVal, var2,result):
+        self.strVal = strVal
+        self.var2 = var2
+        self.length = result
+
+class SubstringNode(InstructionNode):
+    def __init__(self, strVal,value1, value2,result):
+        self.strVal = strVal
+        self.value1 = value1
+        self.value2 = value2
+        self.length = result
+
 
 def get_formatter():
 
