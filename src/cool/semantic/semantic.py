@@ -276,6 +276,11 @@ class Context:
         string_type.define_method('concat',['s'],[string_type],string_type)
         string_type.define_method('substr', ['i','l'] ,[int_type,int_type],string_type)
         
+        int_type.parent = object_type
+        string_type.parent = object_type
+        bool_type.parent = object_type
+        error_type.parent = object_type
+        IO_type.parent = object_type
 
         
 

@@ -33,7 +33,7 @@ def run_semantic_pipeline(ast):
     # print(context)
     # print('=============== CHECKING TYPES ================')
     checker = TypeChecker(context, errors,actual_counter)
-    checker.visit(ast) # scope = checker.visit(ast)
+    scope = checker.visit(ast) # scope = checker.visit(ast)
     print_error(errors)
     # inferences = checker.inference
     # print('Errors: [')
@@ -50,19 +50,7 @@ def run_semantic_pipeline(ast):
     # for inf in fixed_inferences.items() :
     #     print('\t', inf)
     # print(']')
-
-    # print('===============SHOWING INFERENCE===============')
-    # context = checker.context
-    # inference = fixed_inferences
-    # inferer = TypeInferences(context, inference)
-    # inferer.visit(ast)
-    # inference_list = inferer.inference_solved
-    # print('Inferences: [')
-    # for inf in inference_list:
-    #     print('\t', inf)
-    # print(']')
-    # print('================================================')
-    # return errors,inference_list,parse_error
+    return context,scope
 
 def print_error(errors):
     if errors:

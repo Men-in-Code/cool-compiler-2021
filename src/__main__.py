@@ -4,6 +4,7 @@ from cool.lexer.lexer import Lexer, main
 from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
 from cool.semantic.semanticAnalizer import run_semantic_pipeline
+from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
 
 
 import os.path
@@ -11,7 +12,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "semantic/eq1.cl"
+    add = "codegen/primes.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -20,6 +21,21 @@ if __name__ == '__main__':
     
     with open(_in) as file:
         text = file.read()
+
+    text = '''
+class A {
+    a : Int ;
+    suma ( a : Int , b : Int ) : Int 
+    {
+        {
+            a + b;
+        }
+    };
+    b : Int ;
+};
+class Main inherits IO {
+  main(): IO { out_string("Hello World")};
+};'''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
     tokens = lexer.tokenize()
@@ -40,5 +56,6 @@ if __name__ == '__main__':
         print(parser.errors[0])
         raise Exception()
 
-    run_semantic_pipeline(ast)
+    context,scope = run_semantic_pipeline(ast)
+    cil_ast = run_code_gen_pipeline(ast,context,scope)
 
