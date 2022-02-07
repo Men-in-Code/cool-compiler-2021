@@ -1,3 +1,4 @@
+from typing import List
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
@@ -29,7 +30,16 @@ class BaseCOOLToCILVisitor:
     @property
     def instructions(self):
         return self.current_function.instructions
+
+    def register_param(self,vinfo):
+        vinfo.name = f'param_{self.current_function.name[9:]}_{vinfo.name}'
+        param_node = cil.ParamNode(vinfo.name)
+        self.params.append(param_node)
     
+    def is_in_actual_params(self,param_name):
+        return param_name in self.params
+
+
     def register_local(self, vinfo):
         vinfo.name = f'local_{self.current_function.name[9:]}_{vinfo.name}_{len(self.localvars)}'
         local_node = cil.LocalNode(vinfo.name)
@@ -70,6 +80,15 @@ class BaseCOOLToCILVisitor:
             for p_type in parents:
                 for method in p_type.methods:
                     p.methods.append((method.name,self.to_function_name(method.name,p_type.name)))
+
+    def fill_builtin(self,context:Context):
+        aaa = Type('aaa')
+        built_in_types = [context.get_type('Object'),context.get_type('IO'),context.get_type('Int'),context.get_type('String')]
+        for t in built_in_types:
+            cilType = self.register_type(t.name)
+            cilType.attributes = [for a in t.]
+            cilType.methods
+
 
             # p.methods += [self.to_function_name(method,type) for method in p_type.methods 
             #     for p_type in parents]
