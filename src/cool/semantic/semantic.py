@@ -1,4 +1,5 @@
 import itertools as itt
+from collections import OrderedDict
 
 class SemanticException(Exception):
     @property
@@ -125,6 +126,18 @@ class Type:
                 return self.parent.get_method(name)
             except SemanticException:
                 raise SemanticException(f'Method "{name}" is not defined in {self.name}.')
+            
+    def get_all_parents(self):
+        if self.parent is None: return []
+        return [self.parent]+self.parent.get_all_parents()
+
+    def all_attributes(self, clean=True):
+        plain = OrderedDict() if self.parent is None else self.parent.all_attributes(False)
+        for attr in self.attributes:
+            plain[attr.name] = (attr, self)
+        return plain.values() if clean else plain
+
+    
 
     # def define_method(self, name:str, param_names:list, param_types:list, return_type):
     #     if name in self.methods:
@@ -282,7 +295,7 @@ class Context:
         error_type.parent = object_type
         IO_type.parent = object_type
 
-        
+    
 
     def create_type(self, name:str):
         if name in self.types:

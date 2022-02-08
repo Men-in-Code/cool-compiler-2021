@@ -42,7 +42,7 @@ class BaseCOOLToCILVisitor:
 
     def register_local(self, vinfo):
         vinfo.name = f'local_{self.current_function.name[9:]}_{vinfo.name}_{len(self.localvars)}'
-        local_node = cil.LocalNode(vinfo.name)
+        local_node = cil.LocalCilNode(vinfo.name)
         self.localvars.append(local_node)
         return vinfo.name
 
@@ -58,12 +58,12 @@ class BaseCOOLToCILVisitor:
         return f'function_{method_name}_at_{type_name}'
     
     def register_function(self, function_name):
-        function_node = cil.FunctionNode(function_name, [], [], [])
+        function_node = cil.FunctionCilNode(function_name, [], [], [])
         self.dotcode.append(function_node)
         return function_node
     
     def register_type(self, name):
-        type_node = cil.TypeNode(name)
+        type_node = cil.TypeCilNode(name)
         self.dottypes.append(type_node)
         return type_node
 
@@ -79,15 +79,17 @@ class BaseCOOLToCILVisitor:
             parents = p_type.get_all_parents()
             for p_type in parents:
                 for method in p_type.methods:
-                    p.methods.append((method.name,self.to_function_name(method.name,p_type.name)))
+                    p.methods.append((method,self.to_function_name(method,p_type.name)))
 
-    def fill_builtin(self,context:Context):
+    def fill_builtin(self):
         aaa = Type('aaa')
-        built_in_types = [context.get_type('Object'),context.get_type('IO'),context.get_type('Int'),context.get_type('String')]
+        aaa.methods
+        aaa.attributes
+        built_in_types = [self.context.get_type('Object'),self.context.get_type('IO'),self.context.get_type('Int'),self.context.get_type('String')]
         for t in built_in_types:
             cilType = self.register_type(t.name)
-            cilType.attributes = [for a in t.]
-            cilType.methods
+            # cilType.attributes = [a for a in t.attributes]
+            cilType.methods = [(m,self.to_function_name(m,t.name)) for m in t.methods]
 
 
             # p.methods += [self.to_function_name(method,type) for method in p_type.methods 
@@ -108,19 +110,20 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         instance = self.define_internal_local()
         result = self.define_internal_local()
         main_method_name = self.to_function_name('main', 'Main')
-        self.register_instruction(cil.AllocateNode('Main', instance))
-        self.register_instruction(cil.ArgNode(instance))
-        self.register_instruction(cil.StaticCallNode(main_method_name, result))
-        self.register_instruction(cil.ReturnNode(0))
-        self.current_function = None
+        self.register_instruction(cil.AllocateCilNode('Main', instance))
+        self.register_instruction(cil.ArgCilNode(instance))
+        self.register_instruction(cil.StaticCallCilNode(main_method_name, result))
+        self.register_instruction(cil.ReturnCilNode(0))
 
+
+        self.fill_builtin()
         
         for declaration, child_scope in zip(node.declarations, scope.children):
             self.visit(declaration, child_scope,cil_scope.create_child())
-
         self.fill_cil_types(self.context)
+        self.current_function = None
 
-        return cil.ProgramNode(self.dottypes, self.dotdata, self.dotcode)
+        return cil.ProgramCilNode(self.dottypes, self.dotdata, self.dotcode)
     
     @visitor.when(ClassDeclarationNode)
     def visit(self, node, scope,cil_scope):
@@ -136,9 +139,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         cil_type = self.register_type(node.id)
         cil_type.attributes = [v.name for (v,_) in self.current_type.all_attributes()]
 
-        
-
-        func_declarations = (f for f in node.features if isinstance(f, FuncDeclarationNode))
+        func_declarations = [f for f in node.features if isinstance(f, FuncDeclarationNode)]
         for feature, child_scope in zip(func_declarations, scope.children):
             value = self.visit(feature, child_scope,cil_scope.create_child())
         
@@ -160,15 +161,13 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         function_name = self.to_function_name(node.id,self.current_type.name)
         self.dottypes[-1].methods.append((node.id,function_name))
         self.current_function = self.register_function(function_name)
-        self_param = [cil.ParamNode('self')]
-        self.current_function.params = self_param+[cil.ParamNode(param_name) for (param_name,_) in node.params] 
+        self_param = [cil.ParamCilNode('self')]
+        self.current_function.params = self_param+[cil.ParamCilNode(param.id) for param in node.params] 
 
-        value = 0
-        for instruction, child_scope in zip(node.body, scope.children):
-            value = self.visit(instruction, child_scope,cil_scope)
+        value = self.visit(node.body, cil_scope)
 
         # Your code here!!! (Handle RETURN)
-        self.register_instruction(cil.ReturnNode(value))
+        self.register_instruction(cil.ReturnCilNode(value))
         self.current_method = None
         return self.current_function
 
@@ -182,55 +181,26 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # Your code here!!!
         pass
 
-    @visitor.when(AssignNode)
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.id -> str
-        # node.expr -> ExpressionNode
-        ###############################
-        
-        # Your code here!!!
-        # dest = self.register_local(node.id)
-        # source = self.visit(node.expr)
-        # return cil.AssignNode(dest,source)
-        pass
-
-    @visitor.when(CallNode)
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.obj -> AtomicNode
-        # node.id -> str
-        # node.args -> [ ExpressionNode ... ]
-        ###############################
-        
-        # Your code here!!!
-        pass
-
-    @visitor.when(ConstantNumNode)
+    @visitor.when(ConstantNumNode) #7.1 Constant
     def visit(self, node, scope,cil_scope):
         ###############################
         # node.lex -> str
         ###############################
-        
-        # Your code here!!! (Pretty easy ;-))
         return node.lex
-        pass
 
-    @visitor.when(VariableNode)
-    def visit(self, node, scope,cil_scope):
+    @visitor.when(VariableNode) #7.2 Identifiers
+    def visit(self, node,cil_scope):
         ###############################
         # node.lex -> str
         ###############################
-        
-        # Your code here!!!
-
         if cil_scope.find_variable(node.lex):
             self.register_local(node.lex)
             return node.lex
-        elif node.lex in [param_nodes.name[0] for param_nodes in self.current_function.params]:
+        elif node.lex in [param_nodes.name for param_nodes in self.params]:
             return node.lex
         elif node.lex in self.current_type.all_attributes():
             new_local = self.define_internal_local()
+            return new_local.name
         else:
             pass
 
@@ -243,48 +213,282 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # Your code here!!!
         pass
 
+    @visitor.when(AssignNode) #7.3 Assignement
+    def visit(self, node,cil_scope):
+        ###############################
+        # node.id -> str
+        # node.expr -> ExpressionNode
+        ###############################
+        if cil_scope.is_defined(node.id):
+            dest = 
+        elif self.is_in_actual_params(node.id):
+            dest = 
+        else:
+            dest = 
+
+        source = self.visit(node.expr,cil_scope)
+        self.register_instruction(cil.AssignCilNode(dest,source))
+        return dest
+
+    @visitor.when(CallNode) #7.4 Dispatch
+    def visit(self, node, scope,cil_scope):
+        ###############################
+        # node.obj -> AtomicNode
+        # node.id -> str
+        # node.args -> [ ExpressionNode ... ]
+        ###############################
+        
+        # Your code here!!!
+        pass
+    
+    @visitor.when(ExpressionGroupNode) #7.7 Blocks
+    def visit(self, node, scope,cil_scope):
+        ###############################
+        # node.body -> ExpressionNode
+        ###############################
+        for expression in node.body:
+            value = self.visit(expression)
+        return value
+
+    
+
     @visitor.when(PlusNode)
     def visit(self, node, scope,cil_scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
-        
-        # Your code here!!!
         dest = self.define_internal_local()
         left = self.visit(node.left,scope,cil_scope)
         right = self.visit(node.right,scope,cil_scope)
-        self.register_instruction(cil.PlusNode(dest,left,right))
+        self.register_instruction(cil.PlusCilNode(dest,left,right))
+        return dest
+
+    @visitor.when(MinusNode)
+    def visit(self, node, cil_scope):
+        ###############################
+        # node.left -> ExpressionNode
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        left = self.visit(node.left,cil_scope)
+        right = self.visit(node.right,cil_scope)
+        self.register_instruction(cil.MinusCilNode(dest,left,right))
+        return dest
+
+    @visitor.when(StarNode)
+    def visit(self, node, cil_scope):
+        ###############################
+        # node.left -> ExpressionNode
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        left = self.visit(node.left,cil_scope)
+        right = self.visit(node.right,cil_scope)
+        self.register_instruction(cil.StarCilNode(dest,left,right))
         return dest
         pass
 
-    @visitor.when(MinusNode)
-    def visit(self, node, scope):
-        ###############################
-        # node.left -> ExpressionNode
-        # node.right -> ExpressionNode
-        ###############################
-        
-        # Your code here!!!
-        pass
-
-    @visitor.when(StarNode)
-    def visit(self, node, scope):
-        ###############################
-        # node.left -> ExpressionNode
-        # node.right -> ExpressionNode
-        ###############################
-        
-        # Your code here!!!
-        pass
-
     @visitor.when(DivNode)
-    def visit(self, node, scope):
+    def visit(self, node, cil_scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
+        dest = self.define_internal_local()
+        left = self.visit(node.left,cil_scope)
+        right = self.visit(node.right,cil_scope)
+        self.register_instruction(cil.StarCilNode(dest,left,right))
+        return dest
+
+
+
+# class Node:
+#     pass
+
+# class ProgramNode(Node):
+#     def __init__(self, declarations):
+#         self.declarations = declarations
+# class DeclarationNode(Node):
+#     pass
+# class ExpressionNode(Node):
+#     pass
+
+# class ClassDeclarationNode(DeclarationNode):
+#     def __init__(self, idx, features, parent, row , column):
+#         self.id = idx
+#         self.parent = parent
+#         self.features = features
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+
+# class FuncDeclarationNode(DeclarationNode):
+#     def __init__(self, idx, params, return_type, body, row, column):
+#         self.id = idx
+#         self.params = params
+#         self.type = return_type
+#         self.body = body
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class IfNode(ExpressionNode):
+#     def __init__(self,ifexp, thenexp,elseexp, row, column):
+#         self.ifexp = ifexp
+#         self.thenexp = thenexp
+#         self.elseexp = elseexp
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class WhileNode(ExpressionNode):
+#     def __init__(self, condition, body, row, column):
+#         self.condition = condition
+#         self.body = body
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class CaseNode(ExpressionNode):
+#     def __init__(self,case,body, row, column):
+#         self.case = case
+#         self.body = body
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class LetNode(ExpressionNode):
+#     def __init__(self, params, body, row, column):
+#         self.params = params
+#         self.body = body
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class ExpressionGroupNode(ExpressionNode):
+#     def __init__(self, body, row, column):
+#         self.body = body
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class AttrDeclarationNode(DeclarationNode):
+#     def __init__(self, idx, typex, expr, row = 0, column = 0):
+#         self.id = idx
+#         self.type = typex
+#         self.expr = expr
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class ParamDeclarationNode(DeclarationNode):
+#     def __init__(self, idx, typex, row = 0, column = 0):
+#         self.id = idx
+#         self.type = typex
+#         self.row = row
+#         self.column = column
+
+# class VarDeclarationNode(ExpressionNode):
+#     def __init__(self, idx, typex, expr, row = 0, column = 0):
+#         self.id = idx
+#         self.type = typex
+#         self.expr = expr
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
         
-        # Your code here!!!
-        cil.DivNode
-        pass
+# class DeclarationNode(ExpressionNode):
+#     def __init__(self, idx, typex, expr, row = 0, column = 0):
+#         self.id = idx
+#         self.type = typex
+#         self.expr = expr
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class AssignNode(ExpressionNode):
+#     def __init__(self, idx, expr, row, column):
+#         self.id = idx
+#         self.expr = expr
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class CallNode(ExpressionNode):
+#     def __init__(self, obj, idx, args, parent, row = 0, column = 0):
+#         self.obj = obj
+#         self.id = idx
+#         self.args = args
+#         self.parent = parent
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class ExpressionGroupNode(ExpressionNode):
+#     def __init__(self, body, row, column):
+
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class AtomicNode(ExpressionNode):
+#     def __init__(self, lex, row, column):
+#         self.lex = lex
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class BinaryNode(ExpressionNode):
+#     def __init__(self, tok, left, right, row, column):
+#         self.left = left
+#         self.right = right
+#         self.lex = tok.value
+#         self.row = row
+#         self.column = column
+        
+# class BinaryIntNode(BinaryNode):
+#     pass
+# class BinaryBoolNode(BinaryNode):
+#     pass
+
+# class UnaryNode(ExpressionNode):
+#     def __init__(self,right, row, column):
+#         self.right = right
+#         self.place_holder = None
+#         self.row = row
+#         self.column = column
+
+# class StringNode(AtomicNode):
+#     pass
+# class ConstantNumNode(AtomicNode):
+#     pass
+# class VariableNode(AtomicNode):
+#     pass
+# class InstantiateNode(AtomicNode):
+#     pass
+# class BooleanNode(AtomicNode):
+#     pass
+# class SelfNode(AtomicNode):
+#     pass
+# class PlusNode(BinaryIntNode):
+#     pass
+# class MinusNode(BinaryIntNode):
+#     pass
+# class StarNode(BinaryIntNode):
+#     pass
+# class DivNode(BinaryIntNode):
+#     pass
+# class EqualNode(BinaryNode):
+#     pass
+# class LessEqual(BinaryBoolNode):
+#     pass
+# class LessNode(BinaryBoolNode):
+#     pass
+# class IsVoidNode(UnaryNode):
+#     pass
+# class NotNode(UnaryNode):
+#     pass
+# class NegateNode(UnaryNode):
+#     pass
