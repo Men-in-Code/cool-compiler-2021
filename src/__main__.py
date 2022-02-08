@@ -27,9 +27,7 @@ class A {
     a : Int ;
     suma ( a : Int , b : Int ) : Int 
     {
-        {
-            a + b;
-        }
+        a + b
     };
     b : Int ;
 };
