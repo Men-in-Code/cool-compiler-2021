@@ -1,4 +1,10 @@
+from ast import arg
+from copy import copy
 from typing import List
+from venv import create
+
+from git import typ
+from numpy import VisibleDeprecationWarning
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
@@ -18,6 +24,7 @@ class BaseCOOLToCILVisitor:
         self.current_method = None
         self.current_function = None
         self.context = context
+        self.label_id = 0
     
     @property
     def params(self):
@@ -32,23 +39,27 @@ class BaseCOOLToCILVisitor:
         return self.current_function.instructions
 
     def register_param(self,vinfo):
-        vinfo.name = f'param_{self.current_function.name[9:]}_{vinfo.name}'
-        param_node = cil.ParamNode(vinfo.name)
+        vinfo.name = f'{vinfo.name}'
+        param_node = cil.ParamCilNode(vinfo.name)
         self.params.append(param_node)
+        return vinfo.name
     
     def is_in_actual_params(self,param_name):
         return param_name in self.params
 
 
-    def register_local(self, vinfo):
+    def register_local(self, vinfo,scope = None):
+        cool_name = vinfo.name
         vinfo.name = f'local_{self.current_function.name[9:]}_{vinfo.name}_{len(self.localvars)}'
         local_node = cil.LocalCilNode(vinfo.name)
         self.localvars.append(local_node)
+        if scope is not None:
+            scope.define_cil_local(cool_name,vinfo.name)
         return vinfo.name
 
-    def define_internal_local(self):
+    def define_internal_local(self,scope = None):
         vinfo = VariableInfo('internal', None)
-        return self.register_local(vinfo)
+        return self.register_local(vinfo,scope)
 
     def register_instruction(self, instruction):
         self.instructions.append(instruction)
@@ -80,20 +91,109 @@ class BaseCOOLToCILVisitor:
             for p_type in parents:
                 for method in p_type.methods:
                     p.methods.append((method,self.to_function_name(method,p_type.name)))
+    
+    def create_label(self):
+        self.label_id += 1
+        return f'label{self.label_id}'
 
     def fill_builtin(self):
-        aaa = Type('aaa')
-        aaa.methods
-        aaa.attributes
         built_in_types = [self.context.get_type('Object'),self.context.get_type('IO'),self.context.get_type('Int'),self.context.get_type('String')]
         for t in built_in_types:
             cilType = self.register_type(t.name)
-            # cilType.attributes = [a for a in t.attributes]
             cilType.methods = [(m,self.to_function_name(m,t.name)) for m in t.methods]
 
+        #=============================Object=========================================
+        self.current_type = self.context.get_type('Object')
 
-            # p.methods += [self.to_function_name(method,type) for method in p_type.methods 
-            #     for p_type in parents]
+        #function abort
+        self.current_function = self.register_function(self.to_function_name('abort',self.current_type.name))
+        self.register_param(VariableInfo('self',self.current_type.name))
+        self.register_instruction(cil.AbortCilNode())
+        self.register_instruction(cil.ReturnCilNode())
+
+        #function type_name
+        self.current_function = self.register_function(self.to_function_name('type_name',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.TypeNameCilNode(param_self,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #function copy
+        self.current_function = self.register_function(self.to_function_name('type_name',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.CopyCilNode(param_self,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+        
+        #=========================Int=========================================
+        self.current_type = self.context.get_type('Int')
+        #=========================String=========================================
+        self.current_type = self.context.get_type('String')
+        #function length
+        self.current_function = self.register_function(self.to_function_name('length',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.LengthCilNode(param_self,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #function concat
+        self.current_function = self.register_function(self.to_function_name('concat',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('var2',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.ConcatCilNode(param_self,param1,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #function substr
+        self.current_function = self.register_function(self.to_function_name('substr',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('param1','Int'))
+        param2 = self.register_param(VariableInfo('param2','Int'))
+        result = self.define_internal_local()
+        self.register_instruction(cil.SubstringCilNode(param_self,param1,param2,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #=========================Bool=========================================
+        self.current_type = self.context.get_type('Bool')
+
+        #=========================IO=========================================
+        self.current_type = self.context.get_type('IO')
+        #function out_string
+        self.current_function = self.register_function(self.to_function_name('out_string',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
+        result = self.define_internal_local()
+        self.register_instruction(cil.PrintStringCilNode(param_self,param1))
+        self.register_instruction(cil.ReturnCilNode(param_self))
+
+        #function out_int
+        self.current_function = self.register_function(self.to_function_name('out_int',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('param1',self.context.get_type('Int')))
+        result = self.define_internal_local()
+        self.register_instruction(cil.PrintIntCilNode(param_self,param1))
+        self.register_instruction(cil.ReturnCilNode(param_self))
+
+        #function in_string
+        self.current_function = self.register_function(self.to_function_name('in_string',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
+        result = self.define_internal_local()
+        self.register_instruction(cil.ReadStringCilNode(param_self,param1,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #function in_int
+        self.current_function = self.register_function(self.to_function_name('in_int',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
+        result = self.define_internal_local()
+        self.register_instruction(cil.ReadIntCilNode(param_self,param1,result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        self.current_type = None
+        self.current_function = None
+        self.current_method = None
+
 
 class COOLToCILVisitor(BaseCOOLToCILVisitor):
     @visitor.on('node')
@@ -105,28 +205,25 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ######################################################
         # node.declarations -> [ ClassDeclarationNode ... ]
         ######################################################
-        cil_scope = Scope()
-        self.current_function = self.register_function('entry')
-        instance = self.define_internal_local()
-        result = self.define_internal_local()
-        main_method_name = self.to_function_name('main', 'Main')
-        self.register_instruction(cil.AllocateCilNode('Main', instance))
-        self.register_instruction(cil.ArgCilNode(instance))
-        self.register_instruction(cil.StaticCallCilNode(main_method_name, result))
-        self.register_instruction(cil.ReturnCilNode(0))
-
-
+        # self.current_function = self.register_function('entry')
+        # instance = self.define_internal_local(scope)
+        # result = self.define_internal_local(scope)
+        # main_method_name = self.to_function_name('main', 'Main')
+        # self.register_instruction(cil.AllocateCilNode('Main', instance))
+        # self.register_instruction(cil.ArgCilNode(instance))
+        # self.register_instruction(cil.StaticCallCilNode(main_method_name, result))
+        # self.register_instruction(cil.ReturnCilNode(0))
         self.fill_builtin()
         
         for declaration, child_scope in zip(node.declarations, scope.children):
-            self.visit(declaration, child_scope,cil_scope.create_child())
+            self.visit(declaration, child_scope)
         self.fill_cil_types(self.context)
         self.current_function = None
 
         return cil.ProgramCilNode(self.dottypes, self.dotdata, self.dotcode)
     
     @visitor.when(ClassDeclarationNode)
-    def visit(self, node, scope,cil_scope):
+    def visit(self, node, scope):
         ####################################################################
         # node.id -> str
         # node.parent -> str
@@ -135,20 +232,19 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         
         self.current_type = self.context.get_type(node.id)
 
-        # Your code here!!! (Handle all the .TYPE section)
         cil_type = self.register_type(node.id)
         cil_type.attributes = [v.name for (v,_) in self.current_type.all_attributes()]
 
         func_declarations = [f for f in node.features if isinstance(f, FuncDeclarationNode)]
         for feature, child_scope in zip(func_declarations, scope.children):
-            value = self.visit(feature, child_scope,cil_scope.create_child())
+            value = self.visit(feature,scope.create_child())
         
 
         self.current_type = None
 
                 
     @visitor.when(FuncDeclarationNode)
-    def visit(self, node, scope,cil_scope):
+    def visit(self, node, scope):
         ###############################
         # node.id -> str
         # node.params -> [ (str, str) ... ]
@@ -157,191 +253,238 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         self.current_method = self.current_type.get_method(node.id)
 
-        # Your code here!!! (Handle PARAMS)
         function_name = self.to_function_name(node.id,self.current_type.name)
         self.dottypes[-1].methods.append((node.id,function_name))
         self.current_function = self.register_function(function_name)
-        self_param = [cil.ParamCilNode('self')]
-        self.current_function.params = self_param+[cil.ParamCilNode(param.id) for param in node.params] 
 
-        value = self.visit(node.body, cil_scope)
+        self.register_param(VariableInfo('self',self.current_type.name))
+        for param in node.params:
+            self.register_param(VariableInfo(param.id,param.type))
+        value = self.visit(node.body, scope)
 
-        # Your code here!!! (Handle RETURN)
         self.register_instruction(cil.ReturnCilNode(value))
         self.current_method = None
+
         return self.current_function
 
-    @visitor.when(VarDeclarationNode)
-    def visit(self, node, scope,cil_scope):
+    @visitor.when(ConstantNumNode) #7.1 Constant
+    def visit(self, node,scope):
+        ###############################
+        # node.lex -> str
+        ###############################
+        returnVal = self.define_internal_local()
+        self.register_instruction(cil.ConstantCilNode(returnVal,node.lex)) 
+        return returnVal
+
+    @visitor.when(VariableNode) #7.2 Identifiers
+    def visit(self, node,scope):
+        ###############################
+        # node.lex -> str
+        ###############################
+        if scope.is_cil_defined(node.lex):
+            self.register_local(VariableInfo(node.lex,None))
+            return node.lex
+        elif node.lex in [param_nodes.name for param_nodes in self.params]:
+            return f'param_{node.lex}'
+        elif node.lex in self.current_type.all_attributes():
+            new_local = self.define_internal_local()
+            return f'attrib_{new_local.name}'
+        else:
+            pass
+
+    @visitor.when(AssignNode) #7.3 Assignement
+    def visit(self, node,scope):
+        ###############################
+        # node.id -> str
+        # node.expr -> ExpressionNode
+        ###############################
+        source = self.visit(node.expr,scope)
+        local_var = scope.find_cil_variable(node.id)
+        if local_var is not None: #local
+            dest = local_var
+            self.register_instruction(cil.AssignCilNode(dest,source))
+        elif self.is_in_actual_params(node.id): #param
+            dest = node.id
+            self.register_instruction(cil.AssignCilNode(dest,source))
+        else: #attribute
+            self.register_instruction(cil.SetAttribCilNode(self.current_type.name,source,node.id))
+            dest = node.id
+            
+        return dest
+
+    @visitor.when(CallNode) #7.4 Dispatch
+    def visit(self, node, scope):
+        ###############################
+        #self.obj = ExpressionNode
+        #self.id = str
+        #self.args = args
+        #self.parent = Type
+        ###############################
+        result = self.define_internal_local()
+        expresion = self.visit(node.obj,scope)
+
+        arg_list = [cil.ArgCilNode(expresion)]
+        for a in reversed(node.args):
+            method_arg = self.visit(a,scope)
+            arg_list.append(cil.ArgCilNode(method_arg))
+        if node.parent is not None:
+            self.register_instruction(cil.StaticCallCilNode(expresion,node.computed_type,None,arg_list,result))
+        else:
+            self.register_instruction(cil.DynamicCallCilNode(expresion,node.computed_type,None,arg_list,result))
+    
+    @visitor.when(IfNode) #7.5 Conditional
+    def visit(self,node,scope):
+        ###############################
+        #node.ifexp = ExpressionNode
+        #node.elseexp = ExpressionNode
+        #node.thenexp = ExpressionNode
+        ###############################
+        result = self.define_internal_local()
+        condition = self.visit(node.ifexp,scope)
+        then_label = self.create_label()
+        end_label = self.create_label()
+
+        self.register_instruction(cil.GotoIfCilNode(condition,then_label))
+        else_result = self.visit(node.elseexp)
+        self.register_instruction(cil.AssignCilNode(result,else_result))
+        self.register_instruction(cil.GotoCilNode(end_label))
+
+        self.register_instruction(cil.LabelCilNode(then_label))
+        then_result = self.visit(node.thenexp)
+        self.register_instruction(cil.AssignCilNode(result,then_result))
+        self.register_instruction(cil.LabelCilNode(end_label))
+
+        return result 
+
+    @visitor.when(WhileNode) #7.6 Loop
+    def visit(self,node,scope):
+        ###############################
+        # node.condition = ExpressionNode
+        # node.body = ExpressionNode
+        ###############################
+        result = self.define_internal_local()
+        # self.register_instruction(cil.AssignCilNode())
+        label_start = self.create_label()
+        label_end = self.create_label()
+        self.register_instruction(cil.LabelCilNode(label_start))
+        if_result = self.visit(node.condition,scope)
+        self.register_instruction(cil.GotoIfCilNode(if_result,label_end))
+        body_result = self.visit(node.body,scope)
+        self.register_instruction(cil.GotoCilNode(label_start))
+        self.register_instruction(cil.LabelCilNode(label_end))
+
+        # self.register_instruction(cil.returnVoidCilNode)
+        return result
+
+
+
+    @visitor.when(ExpressionGroupNode) #7.7 Blocks
+    def visit(self, node, scope):
+        ###############################
+        # node.body -> ExpressionNode
+        ###############################
+        for expression in node.body:
+            value = self.visit(expression,scope)
+        return value
+
+    @visitor.when(LetNode) #7.8 Let Node 
+    def visit(self, node, scope):
+        ###############################
+        # node.params = [DeclarationNode]
+        # node.body = ExpresionNode
+        ###############################
+        child_scope = scope.create_child()
+        result = self.define_internal_local()
+        for let_local in node.params:
+            self.visit(let_local,child_scope)
+        result = self.visit(node.body)
+        return result
+
+    @visitor.when(DeclarationNode) #7.8 Let Node 
+    def visit(self, node, scope):
+        ###############################
+        # node.case = case
+        # node.body = body
+        ###############################
+        pass
+
+
+
+    @visitor.when(CaseNode) #7.9 Case Node 
+    def visit(self, node, scope):
+        ###############################
+        # node.case = case
+        # node.body = body
+        ###############################
+        pass
+
+    @visitor.when(VarDeclarationNode) #Case Node
+    def visit(self, node, scope):
         ###############################
         # node.id -> str
         # node.type -> str
         # node.expr -> ExpressionNode
         ###############################
-        # Your code here!!!
         pass
 
-    @visitor.when(ConstantNumNode) #7.1 Constant
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.lex -> str
-        ###############################
-        return node.lex
-
-    @visitor.when(VariableNode) #7.2 Identifiers
-    def visit(self, node,cil_scope):
-        ###############################
-        # node.lex -> str
-        ###############################
-        if cil_scope.find_variable(node.lex):
-            self.register_local(node.lex)
-            return node.lex
-        elif node.lex in [param_nodes.name for param_nodes in self.params]:
-            return node.lex
-        elif node.lex in self.current_type.all_attributes():
-            new_local = self.define_internal_local()
-            return new_local.name
-        else:
-            pass
-
-    @visitor.when(InstantiateNode)
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.lex -> str
-        ###############################
-        
-        # Your code here!!!
-        pass
-
-    @visitor.when(AssignNode) #7.3 Assignement
-    def visit(self, node,cil_scope):
-        ###############################
-        # node.id -> str
-        # node.expr -> ExpressionNode
-        ###############################
-        if cil_scope.is_defined(node.id):
-            dest = 
-        elif self.is_in_actual_params(node.id):
-            dest = 
-        else:
-            dest = 
-
-        source = self.visit(node.expr,cil_scope)
-        self.register_instruction(cil.AssignCilNode(dest,source))
-        return dest
-
-    @visitor.when(CallNode) #7.4 Dispatch
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.obj -> AtomicNode
-        # node.id -> str
-        # node.args -> [ ExpressionNode ... ]
-        ###############################
-        
-        # Your code here!!!
-        pass
-    
-    @visitor.when(ExpressionGroupNode) #7.7 Blocks
-    def visit(self, node, scope,cil_scope):
-        ###############################
-        # node.body -> ExpressionNode
-        ###############################
-        for expression in node.body:
-            value = self.visit(expression)
-        return value
 
     
 
     @visitor.when(PlusNode)
-    def visit(self, node, scope,cil_scope):
+    def visit(self, node, scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
-        left = self.visit(node.left,scope,cil_scope)
-        right = self.visit(node.right,scope,cil_scope)
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
         self.register_instruction(cil.PlusCilNode(dest,left,right))
         return dest
 
     @visitor.when(MinusNode)
-    def visit(self, node, cil_scope):
+    def visit(self, node, scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
-        left = self.visit(node.left,cil_scope)
-        right = self.visit(node.right,cil_scope)
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
         self.register_instruction(cil.MinusCilNode(dest,left,right))
         return dest
 
     @visitor.when(StarNode)
-    def visit(self, node, cil_scope):
+    def visit(self, node, scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
-        left = self.visit(node.left,cil_scope)
-        right = self.visit(node.right,cil_scope)
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
         self.register_instruction(cil.StarCilNode(dest,left,right))
         return dest
         pass
 
     @visitor.when(DivNode)
-    def visit(self, node, cil_scope):
+    def visit(self, node, scope):
         ###############################
         # node.left -> ExpressionNode
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
-        left = self.visit(node.left,cil_scope)
-        right = self.visit(node.right,cil_scope)
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
         self.register_instruction(cil.StarCilNode(dest,left,right))
         return dest
 
-
-
-# class Node:
-#     pass
-
-# class ProgramNode(Node):
-#     def __init__(self, declarations):
-#         self.declarations = declarations
-# class DeclarationNode(Node):
-#     pass
-# class ExpressionNode(Node):
-#     pass
-
-# class ClassDeclarationNode(DeclarationNode):
-#     def __init__(self, idx, features, parent, row , column):
-#         self.id = idx
-#         self.parent = parent
-#         self.features = features
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-
-# class FuncDeclarationNode(DeclarationNode):
-#     def __init__(self, idx, params, return_type, body, row, column):
-#         self.id = idx
-#         self.params = params
-#         self.type = return_type
-#         self.body = body
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class IfNode(ExpressionNode):
-#     def __init__(self,ifexp, thenexp,elseexp, row, column):
-#         self.ifexp = ifexp
-#         self.thenexp = thenexp
-#         self.elseexp = elseexp
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
+    @visitor.when(InstantiateNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.lex -> str
+        ###############################
+        pass
 
 # class WhileNode(ExpressionNode):
 #     def __init__(self, condition, body, row, column):
@@ -440,13 +583,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
 #         self.row = row
 #         self.column = column
 
-# class BinaryNode(ExpressionNode):
-#     def __init__(self, tok, left, right, row, column):
-#         self.left = left
-#         self.right = right
-#         self.lex = tok.value
-#         self.row = row
-#         self.column = column
         
 # class BinaryIntNode(BinaryNode):
 #     pass
@@ -459,36 +595,3 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
 #         self.place_holder = None
 #         self.row = row
 #         self.column = column
-
-# class StringNode(AtomicNode):
-#     pass
-# class ConstantNumNode(AtomicNode):
-#     pass
-# class VariableNode(AtomicNode):
-#     pass
-# class InstantiateNode(AtomicNode):
-#     pass
-# class BooleanNode(AtomicNode):
-#     pass
-# class SelfNode(AtomicNode):
-#     pass
-# class PlusNode(BinaryIntNode):
-#     pass
-# class MinusNode(BinaryIntNode):
-#     pass
-# class StarNode(BinaryIntNode):
-#     pass
-# class DivNode(BinaryIntNode):
-#     pass
-# class EqualNode(BinaryNode):
-#     pass
-# class LessEqual(BinaryBoolNode):
-#     pass
-# class LessNode(BinaryBoolNode):
-#     pass
-# class IsVoidNode(UnaryNode):
-#     pass
-# class NotNode(UnaryNode):
-#     pass
-# class NegateNode(UnaryNode):
-#     pass

@@ -201,7 +201,7 @@ class TypeChecker:
         
         node.computed_type = node_type
         
-    @visitor.when(DeclarationNode)
+    @visitor.when(LetDeclarationNode)
     def visit(self, node, scope,expected = None):
         expected_child = node.type
         if node.id == 'self':

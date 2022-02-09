@@ -27,7 +27,10 @@ class A {
     a : Int ;
     suma ( a : Int , b : Int ) : Int 
     {
-        a + b
+        {
+            while 4 = 4 loop a + b pool;
+            1;
+        }
     };
     b : Int ;
 };
