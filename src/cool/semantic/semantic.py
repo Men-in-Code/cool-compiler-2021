@@ -327,6 +327,7 @@ class Scope:
     def __init__(self, parent=None):
         self.locals = []
         self.parent = parent
+        self.cil_locals = {}
         self.children = []
         self.index = 0 if parent is None else len(parent)
 
@@ -342,6 +343,10 @@ class Scope:
         info = VariableInfo(vname, vtype)
         self.locals.append(info)
         return info
+        
+    def define_cil_local(self,cool_var_name,cil_var_name):
+        cil_local = self.cil_locals[cool_var_name] = cil_var_name
+        return cil_local
 
     def find_variable(self, vname, index=None):
         locals = self.locals if index is None else itt.islice(self.locals, index)
@@ -354,8 +359,23 @@ class Scope:
                 a = None
             return a
 
+    def find_cil_variable(self,vname,index = None):
+        locals = self.locals if index is None else itt.islice(self.locals, index)
+        try:
+            return next(self.cil_locals[x] for x in locals if x.name == vname)
+        except:
+            if self.parent is not None:
+                a = self.parent.find_cil_variable(vname)
+            else:
+                a = None
+            return a
+
     def is_defined(self, vname):
         a = self.find_variable(vname) is not None
+        return a
+
+    def is_cil_defined(self,cool_name):
+        a = self.find_cil_variable(cool_name) is not None
         return a
 
     def is_local(self, vname):
@@ -373,6 +393,8 @@ class Scope:
 
         if self.parent:
             self.parent.substitute_type(typeA,typeB)
+
+
 
 def get_common_parent(type_A, type_B = None, context = None):
     if type_A.name == 'Error' or type_B.name == 'Error':

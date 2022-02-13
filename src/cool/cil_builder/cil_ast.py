@@ -38,16 +38,7 @@ class LocalCilNode(CilNode):
 
 class InstructionCilNode(CilNode):
     pass
- 
-class ConstantCilNode(InstructionCilNode):
-    def __init__(self,vname,value):
-        self.vname = vname
-        self.value = value
-        
-class AssignCilNode(InstructionCilNode): # Operation "="
-    def __init__(self, dest, source):
-        self.dest = dest
-        self.source = source
+
 
 class BinaryCilNode(InstructionCilNode): #Binary Operations
     def __init__(self, dest, left, right):
@@ -60,8 +51,48 @@ class UnaryCilNode(InstructionCilNode): #Unary Operations
         self.dest = dest
         self.right = right
 
-class WhileCilNode(InstructionCilNode): #7.6 Loops
-    pass
+
+
+
+class ConstantCilNode(InstructionCilNode): #7.1 Constant
+    def __init__(self,vname,value):
+        self.vname = vname
+        self.value = value
+
+#7.2 Identifiers, not necesary cil Node
+
+class AssignCilNode(InstructionCilNode): # 7.3 Assignment
+    def __init__(self, dest, source):
+        self.dest = dest
+        self.source = source
+
+class StaticCallCilNode(InstructionCilNode): #7.4 Distaptch Static
+    def __init__(self,expresion_instance,expresion_type,method_name,args, result):
+        self.expresion_instance = expresion_instance
+        self.expresion_type = expresion_type
+        self.method_name = method_name
+        self.args = args
+        self.result = result
+
+class DynamicCallCilNode(InstructionCilNode): #7.4 Dispatch Dynamic
+    def __init__(self,expresion_instance, dynamic_type, method_name,args, result):
+        self.expresion_instance = expresion_instance
+        self.dynamic_type = dynamic_type
+        self.method_name = method_name
+        self.args = args
+        self.result = result
+
+
+# class IfCilNode(InstructionCilNode): #7.5 If Conditional
+#     def __init__(self,if_expr,then_label,else_label):
+#         self.if_expr = if_expr
+#         self.then_label = then_label
+#         self.else_label = else_label
+
+# class WhileCilNode(InstructionCilNode): #7.6 Loops
+#     def __init__(self,condition,body):
+#         self.condition = condition
+#         self.body = body
 
 class BlockCilNode(InstructionCilNode): #7.7 Blocks
     pass
@@ -69,7 +100,7 @@ class BlockCilNode(InstructionCilNode): #7.7 Blocks
 class LetCilNode(InstructionCilNode): #7.8 Let
     pass
 
-class CaseCilNode(InstructionCilNode): #7.0 Case
+class CaseCilNode(InstructionCilNode): #7.9 Case
     def __init__(self,expr,expr_list,label_list):
         self.main_expr = expr
         self.expr_list = expr_list
@@ -83,12 +114,10 @@ class IsVoidCilNode(InstructionCilNode): #7.11 IsVoid
         self.expresion = expresion
         self.result = result
     pass
-class IfCilNode(InstructionCilNode):
-    pass
 
 
-
-class PlusCilNode(BinaryCilNode):
+#Binary Aritmetic Operations
+class PlusCilNode(BinaryCilNode): 
     pass
 
 class MinusCilNode(BinaryCilNode):
@@ -100,7 +129,7 @@ class DivCilNode(BinaryCilNode):
     pass
 
 
-
+# Attributes operations
 class GetAttribCilNode(InstructionCilNode):
     def __init__(self,instance,stype,attribute,dest):
         self.instance = instance
@@ -109,25 +138,15 @@ class GetAttribCilNode(InstructionCilNode):
         self.dest = dest
 
 class SetAttribCilNode(InstructionCilNode):
-    def __init__(self,instance,value,attribute,dest):
-        self.instance = instance
+    def __init__(self,stype,value,attribute):
+        self.stype = stype
         self.value = value
         self.attribute = attribute
-        self.dest = dest
-
-class GetIndexCilNode(InstructionCilNode):
-    pass
-
-class SetIndexCilNode(InstructionCilNode):
-    pass
 
 class AllocateCilNode(InstructionCilNode):
     def __init__(self, itype, dest):
         self.type = itype
         self.dest = dest
-
-class ArrayCilNode(InstructionCilNode):
-    pass
 
 class TypeOfCilNode(InstructionCilNode):
     def __init__(self, obj, dest):
@@ -146,16 +165,6 @@ class GotoIfCilNode(InstructionCilNode):
     def __init__(self,val,label):
         self.val = val
         self.label = label
-class StaticCallCilNode(InstructionCilNode):
-    def __init__(self, function, dest):
-        self.function = function
-        self.dest = dest
-
-class DynamicCallCilNode(InstructionCilNode):
-    def __init__(self, xtype, method, dest):
-        self.type = xtype
-        self.method = method
-        self.dest = dest
 
 class ArgCilNode(InstructionCilNode):
     def __init__(self, name):
@@ -174,12 +183,14 @@ class LoadCilNode(InstructionCilNode):
 
 #TypesCilNodes
 class IntCilNode(InstructionCilNode):
-    def __init__(self,value):
+    def __init__(self,value,result):
         self.value = value
+        self.result = result
 
 class StringCilNode(InstructionCilNode):
-    def __init__(self,value):
+    def __init__(self,value,result):
         self.value = value
+        self.result = result
 
 #Function CilNodes
 class ToStrCilNode(InstructionCilNode):
@@ -188,11 +199,14 @@ class ToStrCilNode(InstructionCilNode):
         self.ivalue = ivalue
 
 class ReadCilNode(InstructionCilNode):
-    def __init__(self, dest):
+    def __init__(self,self_param,input_var,dest):
+        self.self_param = self_param
+        self.input_var = input_var
         self.dest = dest
 
 class PrintCilNode(InstructionCilNode):
-    def __init__(self, str_addr):
+    def __init__(self,self_param,str_addr):
+        self.self_param = self_param
         self.str_addr = str_addr
 class AbortCilNode(InstructionCilNode):
     pass
@@ -209,13 +223,9 @@ class PrintStringCilNode(PrintCilNode):
 class PrintIntCilNode(PrintCilNode):
     pass
 class ReadStringCilNode(ReadCilNode):
-    def __init__(self, dest, msg_readed):
-        self.dest = dest
-        self.msg_readed = msg_readed
+    pass
 class ReadIntCilNode(ReadCilNode):
-    def __init__(self, dest, num_readed):
-        self.dest = dest
-        self.num_readed = num_readed
+    pass
 class LengthCilNode(InstructionCilNode):
     def __init__(self, strVar, result):
         self.str = strVar
@@ -234,8 +244,31 @@ class SubstringCilNode(InstructionCilNode):
         self.length = result
 
 
-def get_formatter():
+#Given 2 memory location calculate the distance of his types
+class TypeDistanceCilNode(InstructionCilNode):
+    def __init__(self,type1,type2,result):
+        self.type1 = type1
+        self.type2 = type2
+        self.result = result 
 
+
+class MinCilNode(InstructionCilNode):
+    def __init__(self,num1,num2,result):
+        self.num1 = num1
+        self.num2 = num2
+        self.result = result
+
+
+
+class ErrorCilNode(InstructionCilNode):
+    def __init__(self,name):
+        self.name = name
+
+class EqualsCilNode(BinaryCilNode):
+    pass
+
+
+def get_formatter():
     class PrintVisitor(object):
         @visitor.on('CilNode')
         def visit(self, CilNode):

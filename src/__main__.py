@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/primes.cl"
+    add = "lexer/iis4.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -27,7 +27,10 @@ class A {
     a : Int ;
     suma ( a : Int , b : Int ) : Int 
     {
-        a + b
+        {
+            while 4 = 4 loop a + b pool;
+            1;
+        }
     };
     b : Int ;
 };

@@ -131,8 +131,8 @@ class Parser():
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[3].column
         line = p.lineno(1)
-        p[0] = DeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
-                else DeclarationNode(p[1],p[3],p[5], line, col)
+        p[0] = LetDeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
+                else LetDeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_assign_list(self,p):
         '''assign_list : case_assign
