@@ -183,12 +183,14 @@ class LoadCilNode(InstructionCilNode):
 
 #TypesCilNodes
 class IntCilNode(InstructionCilNode):
-    def __init__(self,value):
+    def __init__(self,value,result):
         self.value = value
+        self.result = result
 
 class StringCilNode(InstructionCilNode):
-    def __init__(self,value):
+    def __init__(self,value,result):
         self.value = value
+        self.result = result
 
 #Function CilNodes
 class ToStrCilNode(InstructionCilNode):
@@ -242,8 +244,31 @@ class SubstringCilNode(InstructionCilNode):
         self.length = result
 
 
-def get_formatter():
+#Given 2 memory location calculate the distance of his types
+class TypeDistanceCilNode(InstructionCilNode):
+    def __init__(self,type1,type2,result):
+        self.type1 = type1
+        self.type2 = type2
+        self.result = result 
 
+
+class MinCilNode(InstructionCilNode):
+    def __init__(self,num1,num2,result):
+        self.num1 = num1
+        self.num2 = num2
+        self.result = result
+
+
+
+class ErrorCilNode(InstructionCilNode):
+    def __init__(self,name):
+        self.name = name
+
+class EqualsCilNode(BinaryCilNode):
+    pass
+
+
+def get_formatter():
     class PrintVisitor(object):
         @visitor.on('CilNode')
         def visit(self, CilNode):

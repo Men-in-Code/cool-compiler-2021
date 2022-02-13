@@ -1,9 +1,5 @@
-from ast import arg
-from copy import copy
-from typing import List
-from venv import create
-
 from git import typ
+from is_disposable_email import check
 from numpy import VisibleDeprecationWarning
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
@@ -25,6 +21,7 @@ class BaseCOOLToCILVisitor:
         self.current_function = None
         self.context = context
         self.label_id = 0
+        self.tag_id = 0
     
     @property
     def params(self):
@@ -95,6 +92,28 @@ class BaseCOOLToCILVisitor:
     def create_label(self):
         self.label_id += 1
         return f'label{self.label_id}'
+
+    def create_tag(self):
+        self.tag_id += 1
+        return self.tag_id - 1
+
+    def generateTree(self):
+        classList = {}
+        for classNode in self.context.types.keys():
+            classList[classNode.parent].append(classNode) 
+
+    def enumerateTypes(self):
+        parentTree = self.generateTree()
+        self.context['Object'].class_tag = self.create_tag()
+        for child in parentTree['Object']:
+            self.enumerateTypes_aux(child,parentTree)
+
+    def enumerateTypes_aux(self,node,parentTree):
+        for child in parentTree[node]:
+            child.class_tag = self.create_tag()
+            self.enumerateTypes(child,parentTree)
+
+
 
     def fill_builtin(self):
         built_in_types = [self.context.get_type('Object'),self.context.get_type('IO'),self.context.get_type('Int'),self.context.get_type('String')]
@@ -214,7 +233,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # self.register_instruction(cil.StaticCallCilNode(main_method_name, result))
         # self.register_instruction(cil.ReturnCilNode(0))
         self.fill_builtin()
-        
+        self.enumerateTypes()
+
+
         for declaration, child_scope in zip(node.declarations, scope.children):
             self.visit(declaration, child_scope)
         self.fill_cil_types(self.context)
@@ -273,7 +294,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.lex -> str
         ###############################
         returnVal = self.define_internal_local()
-        self.register_instruction(cil.ConstantCilNode(returnVal,node.lex)) 
+        self.register_instruction(cil.IntCilNode(returnVal,node.lex)) 
+        return returnVal
+
+    @visitor.when(StringNode) #7.1 Constant
+    def visit(self, node,scope):
+    ###############################
+    # node.lex -> str
+    ###############################
+        returnVal = self.define_internal_local()
+        self.register_data(cil.StringCilNode(node.lex,returnVal)) 
         return returnVal
 
     @visitor.when(VariableNode) #7.2 Identifiers
@@ -394,29 +424,84 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.body = ExpresionNode
         ###############################
         child_scope = scope.create_child()
-        result = self.define_internal_local()
         for let_local in node.params:
             self.visit(let_local,child_scope)
         result = self.visit(node.body)
         return result
 
-    @visitor.when(DeclarationNode) #7.8 Let Node 
+    @visitor.when(LetDeclarationNode) #7.8 Let Node 
     def visit(self, node, scope):
         ###############################
-        # node.case = case
-        # node.body = body
+        # node.id = str
+        # node.type = Type
+        # node.expr = ExpresionNode
         ###############################
-        pass
+        var_created = self.register_local(VariableInfo(node.id,node.type),scope)
+        expr_result = self.visit(node.expr,scope)
+        self.register_instruction(cil.AssignCilNode(var_created,expr_result))
+        return var_created
 
 
 
     @visitor.when(CaseNode) #7.9 Case Node 
     def visit(self, node, scope):
         ###############################
-        # node.case = case
-        # node.body = body
+        # node.case = ExpresionNode
+        # node.body = [Expression Node]
         ###############################
-        pass
+        expresionLabel_list = []
+        distance_list = []
+
+        result = self.define_internal_local()   
+        expr_is_void = self.define_internal_local()
+        dynamic_type_of_Expr = self.define_internal_local()
+        label_error = self.create_label()
+        label_end = self.create_label()
+
+        expr_result = self.visit(node.case)
+        self.register_instruction(cil.IsVoidCilNode(expr_result,expr_is_void))
+        self.register_instruction(cil.GotoIfCilNode(expr_is_void,label_error))
+
+        #####
+        #Preguntar para coger el tipo menor
+        #####
+        #Revisar tipos primero y quedarme con el menor Tipe P tal que P >= C
+        self.register_instruction(cil.TypeOfCilNode(expr_result,dynamic_type_of_Expr))
+        min_distance = self.define_internal_local()
+        condition_reached = self.define_internal_local()
+
+        for (i,expr_node) in enumerate(node.body):
+            result_len_i = self.define_internal_local()
+            distance_list.append(result_len_i)
+            if i == 0:
+                self.register_instruction(cil.TypeDistanceCilNode(dynamic_type_of_Expr,expr_node.type,result_len_i))
+                self.register_instruction(cil.AssignCilNode(min_distance,result_len_i))
+            else:
+                expresionLabel_list.append(self.create_label())
+                self.register_instruction(cil.TypeDistanceCilNode(dynamic_type_of_Expr,expr_node.type,result_len_i))
+                self.register_instruction(cil.MinCilNode(result_len_i,min_distance,min_distance))
+
+        for i in range(len(node.body)):
+            a_i_distance = distance_list[i]
+            label_i = expresionLabel_list[i]
+            self.register_instruction(cil.EqualsCilNode(condition_reached,min_distance,a_i_distance))
+            self.register_instruction(cil.GotoIfCilNode(condition_reached,label_i))
+
+        #Ejecutar a isntruccion correspondiente
+        for (i,expr_node) in enumerate(node.body):
+            self.register_instruction(cil.LabelCilNode(expresionLabel_list[i]))
+            child_scope = scope.create_child()
+            self.register_local(expr_node.id,child_scope)
+            body_node_result = self.visit(expr_node,child_scope)
+            self.register_instruction(cil.AssignCilNode(result,body_node_result))
+            self.register_instruction(cil.GotoCilNode(label_end))
+
+        #Si no supo encontrar P tal que C<=P dar error(es el mismo error que el isVoid, arreglar en caso de que se necesite)
+        self.register_instruction(cil.LabelCilNode(label_error))
+        self.register_instruction(cil.ErrorCilNode('IsVoidInCaseNodeExpresion'))
+        self.register_instruction(cil.LabelCilNode(label_end))
+
+        return result
 
     @visitor.when(VarDeclarationNode) #Case Node
     def visit(self, node, scope):
@@ -425,10 +510,8 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.type -> str
         # node.expr -> ExpressionNode
         ###############################
-        pass
-
-
-    
+        result = self.visit(node.expr,scope)
+        return result 
 
     @visitor.when(PlusNode)
     def visit(self, node, scope):
@@ -465,7 +548,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         right = self.visit(node.right,scope)
         self.register_instruction(cil.StarCilNode(dest,left,right))
         return dest
-        pass
 
     @visitor.when(DivNode)
     def visit(self, node, scope):
@@ -474,9 +556,20 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
+        check_zero = self.define_internal_local()
+        label_zero_div = self.create_label()
+        end = self.create_label()
+        
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
-        self.register_instruction(cil.StarCilNode(dest,left,right))
+        self.register_instruction(cil.EqualsCilNode(check_zero,'zero',right))
+        self.register_instruction(cil.GotoIfCilNode(check_zero,label_zero_div))
+        self.register_instruction(cil.DivCilNode(dest,left,right))
+        self.register_instruction(cil.GotoCilNode(end))
+
+        self.register_instruction(cil.LabelCilNode(label_zero_div))
+        self.register_instruction(cil.ErrorCilNode('ERROR DIVIDIR ZERO'))
+        self.register_instruction(cil.LabelCilNode(end))
         return dest
 
     @visitor.when(InstantiateNode)
@@ -484,114 +577,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         # node.lex -> str
         ###############################
-        pass
-
-# class WhileNode(ExpressionNode):
-#     def __init__(self, condition, body, row, column):
-#         self.condition = condition
-#         self.body = body
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class CaseNode(ExpressionNode):
-#     def __init__(self,case,body, row, column):
-#         self.case = case
-#         self.body = body
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class LetNode(ExpressionNode):
-#     def __init__(self, params, body, row, column):
-#         self.params = params
-#         self.body = body
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class ExpressionGroupNode(ExpressionNode):
-#     def __init__(self, body, row, column):
-#         self.body = body
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class AttrDeclarationNode(DeclarationNode):
-#     def __init__(self, idx, typex, expr, row = 0, column = 0):
-#         self.id = idx
-#         self.type = typex
-#         self.expr = expr
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class ParamDeclarationNode(DeclarationNode):
-#     def __init__(self, idx, typex, row = 0, column = 0):
-#         self.id = idx
-#         self.type = typex
-#         self.row = row
-#         self.column = column
-
-# class VarDeclarationNode(ExpressionNode):
-#     def __init__(self, idx, typex, expr, row = 0, column = 0):
-#         self.id = idx
-#         self.type = typex
-#         self.expr = expr
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-        
-# class DeclarationNode(ExpressionNode):
-#     def __init__(self, idx, typex, expr, row = 0, column = 0):
-#         self.id = idx
-#         self.type = typex
-#         self.expr = expr
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class AssignNode(ExpressionNode):
-#     def __init__(self, idx, expr, row, column):
-#         self.id = idx
-#         self.expr = expr
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class CallNode(ExpressionNode):
-#     def __init__(self, obj, idx, args, parent, row = 0, column = 0):
-#         self.obj = obj
-#         self.id = idx
-#         self.args = args
-#         self.parent = parent
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class ExpressionGroupNode(ExpressionNode):
-#     def __init__(self, body, row, column):
-
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-# class AtomicNode(ExpressionNode):
-#     def __init__(self, lex, row, column):
-#         self.lex = lex
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
-
-        
-# class BinaryIntNode(BinaryNode):
-#     pass
-# class BinaryBoolNode(BinaryNode):
-#     pass
-
-# class UnaryNode(ExpressionNode):
-#     def __init__(self,right, row, column):
-#         self.right = right
-#         self.place_holder = None
-#         self.row = row
-#         self.column = column
+        result = self.define_internal_local()
+        if node.lex == "SELF_TYPE":
+            self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        else:
+            self.register_instruction(cil.AllocateCilNode(node.lex,result))
+        return result
