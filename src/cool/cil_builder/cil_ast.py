@@ -53,7 +53,6 @@ class UnaryCilNode(InstructionCilNode): #Unary Operations
 
 
 
-
 class ConstantCilNode(InstructionCilNode): #7.1 Constant
     def __init__(self,vname,value):
         self.vname = vname
@@ -266,6 +265,14 @@ class ErrorCilNode(InstructionCilNode):
 
 class EqualsCilNode(BinaryCilNode):
     pass
+
+
+############# New Nodes ###################
+class ArgNode(CilNode):
+    def __init__(self,name):
+        self.name = name
+
+     
 
 
 def get_formatter():

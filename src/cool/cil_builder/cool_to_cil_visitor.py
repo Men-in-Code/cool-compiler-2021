@@ -316,11 +316,13 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             return node.lex
         elif node.lex in [param_nodes.name for param_nodes in self.params]:
             return f'param_{node.lex}'
-        elif node.lex in self.current_type.all_attributes():
-            new_local = self.define_internal_local()
-            return f'attrib_{new_local.name}'
-        else:
-            pass
+        # elif node.lex in self.current_type.all_attributes():
+        
+        #### que iria en instance ###### ojo
+        new_local = f'attrib_{self.define_internal_local()}'
+        self.register_instruction(cil.GetAttribCilNode(None,self.current_type.name,node.lex,new_local))
+        return new_local
+
 
     @visitor.when(AssignNode) #7.3 Assignement
     def visit(self, node,scope):
@@ -562,14 +564,14 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
-        self.register_instruction(cil.EqualsCilNode(check_zero,'zero',right))
-        self.register_instruction(cil.GotoIfCilNode(check_zero,label_zero_div))
+        # self.register_instruction(cil.EqualsCilNode(check_zero,0,right))
+        # self.register_instruction(cil.GotoIfCilNode(check_zero,label_zero_div))
         self.register_instruction(cil.DivCilNode(dest,left,right))
-        self.register_instruction(cil.GotoCilNode(end))
+        # self.register_instruction(cil.GotoCilNode(end))
 
-        self.register_instruction(cil.LabelCilNode(label_zero_div))
-        self.register_instruction(cil.ErrorCilNode('ERROR DIVIDIR ZERO'))
-        self.register_instruction(cil.LabelCilNode(end))
+        # self.register_instruction(cil.LabelCilNode(label_zero_div))
+        # self.register_instruction(cil.ErrorCilNode('ERROR DIVIDIR ZERO'))
+        # self.register_instruction(cil.LabelCilNode(end))
         return dest
 
     @visitor.when(InstantiateNode)

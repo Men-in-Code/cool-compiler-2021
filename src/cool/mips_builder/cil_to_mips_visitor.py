@@ -1,3 +1,4 @@
+from pydoc import text
 from git import typ
 from numpy import VisibleDeprecationWarning
 from cool.cil_builder.cil_ast import * 
@@ -21,13 +22,13 @@ class BaseCILToMIPSVisitor:
         self.context = context
         self.label_id = 0
 
-        self.mips_code = ""
-        self.mips_data = ""
+        self.text_section = ""
+        self.data_section = ""
         self.mips_type = ""
-        self.type_offser = {}
+        self.type_offset = {}
         self.attribute_offset = {}
         self.method_offset = {}
-        self.data_offset = {}
+        self.var_offset = {}
         self.errors = {
             'call_void_expr':'Runtime Error: A dispatch (static or dynamic) on void',
             'case_void_expr': 'Runtime Error: A case on void',
@@ -71,38 +72,45 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     # self.dotcode = dotcode [FunctionNodeList]
     ########################################
         for type in self.dottypes:
-            pass
+            self.visit(type)
         for data in self.dotdata:
-            pass
-        for code in self.dotcode:
-            self.visit(code,scope)
+            self.visit(data)
+        for inst in self.dotcode:
+            self.visit(inst,scope)
 
-    @visitor.when(ProgramCilNode)
-    class TypeCilNode(CilNode):
-        def __init__(self, name):
-        ########################################
-        # self.name = str
-        # self.attributes = [str]
-        # self.methods = [(str,str)]
-        ########################################
-            pass
+    @visitor.when(TypeCilNode)
+    def visit(self,node):
+        for i,param in enumerate(node.attributes):
+            self.attribute_offset[node.name,param] = 4*i
+            i+=1
 
-
-    class DataCilNode(CilNode):
-        def __init__(self, vname, value):
-        ########################################
-        # self.name = vname
-        # self.value = value
-        ########################################
-            pass
+        for i,method in enumerate(node.methods):
+            self.method_offset[node.name,method] = 4*i
+            i+=1
+      
+    @visitor.when(DataCilNode)
+    def visist(self,node):
+        self.data_section += f'{node.name}: .asciiz {node.value}'
             
-
-    class FunctionCilNode(CilNode):
+    @visitor.when(FunctionCilNode)
+    def visist(self,node):
         def __init__(self, fname, params, localvars, instructions):
             self.name = fname
             self.params = params
             self.localvars = localvars
             self.instructions = instructions
+
+        self.current_function = node
+        for i,var in enumerate(node.params + node.localvars):
+            self.data_offset[self.current_function.name,var.name] = 4*i
+
+        self.text_section += f'{node.name}:\n'
+        self.text_section += f'addi, $sp, $sp, {-4*len(node.params + node.localvars)}'#get space for vars
+        ## ojo faltaria ver que hago con el retorno
+
+        for inst in node.instructions:
+            self.visit(inst)
+
 
     class ParamCilNode(CilNode):
         def __init__(self, name):
@@ -126,8 +134,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         def __init__(self, dest, right):
             self.dest = dest
             self.right = right
-
-
 
 
     class ConstantCilNode(InstructionCilNode): #7.1 Constant
@@ -181,16 +187,53 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
     #Binary Aritmetic Operations
-    class PlusCilNode(BinaryCilNode): 
-        pass
+    @visitor.when(PlusCilNode)
+    def visit(self, node):   
+        offset_right = self.var_offset[self.current_function,node.right]
+        offset_left = self.var_offset[self.current_function,node.left]
+        offset_dest = self.var_offset[self.current_function,node.dest]
 
-    class MinusCilNode(BinaryCilNode):
-        pass
+        self.text+= f'lw, t0, {offset_right}($sp)'
+        self.text+= f'lw, t1, {offset_left}($sp)'
+        self.text+= f'add, $t0,$t0,$t1'
 
-    class StarCilNode(BinaryCilNode):
-        pass
-    class DivCilNode(BinaryCilNode):
-        pass
+        self.text+=f'sw, t0, {offset_dest}($sp)'
+        
+        
+    @visitor.when(MinusCilNode)
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function,node.right]
+        offset_left = self.var_offset[self.current_function,node.left]
+        offset_dest = self.var_offset[self.current_function,node.dest]
+
+        self.text+= f'lw, t0, {offset_right}($sp)'
+        self.text+= f'lw, t1, {offset_left}($sp)'
+        self.text+= f'sub, $t0,$t0,$t1'
+
+        self.text+=f'sw, t0, {offset_dest}($sp)'
+    @visitor.when(StarCilNode)
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function,node.right]
+        offset_left = self.var_offset[self.current_function,node.left]
+        offset_dest = self.var_offset[self.current_function,node.dest]
+
+        self.text+= f'lw, t0, {offset_right}($sp)'
+        self.text+= f'lw, t1, {offset_left}($sp)'
+        self.text+= f'mul, $t0,$t0,$t1'
+
+        self.text+=f'sw, t0, {offset_dest}($sp)'
+
+    @visitor.when(DivCilNode)
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function,node.right]
+        offset_left = self.var_offset[self.current_function,node.left]
+        offset_dest = self.var_offset[self.current_function,node.dest]
+
+        self.text+= f'lw, t0, {offset_right}($sp)'
+        self.text+= f'lw, t1, {offset_left}($sp)'
+        self.text+= f'div, $t0,$t0,$t1'
+
+        self.text+=f'sw, t0, {offset_dest}($sp)'
 
 
     # Attributes operations
@@ -245,18 +288,24 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
 
-    #TypesCilNodes
-    class IntCilNode(InstructionCilNode):
-        def __init__(self,value,result):
-            self.value = value
-            self.result = result
+    #TypesCilNodes falta bool ojo
+    @visitor.when(IntCilNode)
+    def visit(self, node):   
+        # def __init__(self,value,result):
+        #     self.value = value
+        #     self.result = result
+        offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += f'addi, t0, $zero, {node.value}'
+        self.text_section += f'sw, $t0, {offset}($sp)'
+
+
 
     class StringCilNode(InstructionCilNode):
         def __init__(self,value,result):
             self.value = value
             self.result = result
 
-    #Function CilNodes
+    #Function CilNodes 
     class ToStrCilNode(InstructionCilNode):
         def __init__(self, dest, ivalue):
             self.dest = dest
