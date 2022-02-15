@@ -23,28 +23,28 @@ if __name__ == '__main__':
     with open(_in) as file:
         text = file.read()
 
-    text = '''
+#     text = '''
 
-class B inherits A {
-    c : SELF_TYPE ;
-};
+# class B inherits A {
+#     c : SELF_TYPE ;
+# };
 
 
-class A inherits IO {
-    a : Int ;
-    suma ( a : Int , b : Int ) : Int 
-    {
-        {
-            while 4 = 4 loop a + b pool;
-            1;
-        }
-    };
-    b : Int ;
-};
+# class A inherits IO {
+#     a : Int ;
+#     suma ( a : Int , b : Int ) : Int 
+#     {
+#         {
+#             while 4 = 4 loop a + b pool;
+#             1;
+#         }
+#     };
+#     b : Int ;
+# };
 
-class Main inherits IO {
-  main(): IO { out_string("Hello World")};
-};'''
+# class Main inherits IO {
+#   main(): IO { out_string("Hello World")};
+# };'''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
     tokens = lexer.tokenize()
