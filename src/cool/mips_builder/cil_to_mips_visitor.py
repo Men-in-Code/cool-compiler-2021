@@ -26,6 +26,7 @@ class BaseCILToMIPSVisitor:
         self.attribute_offset = {}
         self.method_offset = {}
         self.var_offset = {}
+        self.type_size = {} #quantity of attr. of that type
         self.errors = {
             'call_void_expr':'Runtime Error: A dispatch (static or dynamic) on void',
             'case_void_expr': 'Runtime Error: A case on void',
@@ -77,7 +78,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.dotdata = node.dotdata
         self.fill_dotdata_with_errors()
 
-
         self.data_section+= '#TYPES\n'
         for type in self.dottypes:
             self.data_section+= f'type_{type.name}: .asciiz "{type.name}"\n'
@@ -95,7 +95,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.when(TypeCilNode)
     def visit(self,node):
         for i,param in enumerate(node.attributes):
-            self.attribute_offset[node.name,param] = 4*i
+            self.attribute_offset[node.name][param] = 4*i
             i+=1
 
         for i,method in enumerate(node.methods):
@@ -207,11 +207,11 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function,node.left]
         offset_dest = self.var_offset[self.current_function,node.dest]
 
-        self.text+= f'lw, t0, {offset_right}($sp)'
-        self.text+= f'lw, t1, {offset_left}($sp)'
-        self.text+= f'add, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)'
+        self.text_section+= f'add, $t0,$t0,$t1'
 
-        self.text+=f'sw, t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
         
         
     @visitor.when(MinusCilNode)
@@ -220,22 +220,22 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function,node.left]
         offset_dest = self.var_offset[self.current_function,node.dest]
 
-        self.text+= f'lw, t0, {offset_right}($sp)'
-        self.text+= f'lw, t1, {offset_left}($sp)'
-        self.text+= f'sub, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)'
+        self.text_section+= f'sub, $t0,$t0,$t1'
 
-        self.text+=f'sw, t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
     @visitor.when(StarCilNode)
     def visit(self, node):
         offset_right = self.var_offset[self.current_function,node.right]
         offset_left = self.var_offset[self.current_function,node.left]
         offset_dest = self.var_offset[self.current_function,node.dest]
 
-        self.text+= f'lw, t0, {offset_right}($sp)'
-        self.text+= f'lw, t1, {offset_left}($sp)'
-        self.text+= f'mul, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)'
+        self.text_section+= f'mul, $t0,$t0,$t1'
 
-        self.text+=f'sw, t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
 
     @visitor.when(DivCilNode)
     def visit(self, node):
@@ -243,11 +243,11 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function,node.left]
         offset_dest = self.var_offset[self.current_function,node.dest]
 
-        self.text+= f'lw, t0, {offset_right}($sp)'
-        self.text+= f'lw, t1, {offset_left}($sp)'
-        self.text+= f'div, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)'
+        self.text_section+= f'div, $t0,$t0,$t1'
 
-        self.text+=f'sw, t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
 
 
     # Attributes operations
@@ -264,15 +264,28 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.value = value
     #         self.attribute = attribute
 
-    # class AllocateCilNode(InstructionCilNode):
-    #     def __init__(self, itype, dest):
-    #         self.type = itype
-    #         self.dest = dest
+    @visitor.when(AllocateCilNode)
+    def visit(self, node):
+        def __init__(self, itype, dest):
+            self.type = itype
+            self.dest = dest
 
-    # class TypeOfCilNode(InstructionCilNode):
-    #     def __init__(self, obj, dest):
-    #         self.obj = obj
-    #         self.dest = dest
+        type_size = self.type_size[node.itype] + 1
+        self.text_section += f'addi $a0, $zero, {type_size}' #ojo pudiera faltar un +4
+        self.text_section += 'li, $v0, 9'
+        self.text_section += 'blt, $st, $v0,heap_overflow'
+
+        self.text_section += 'move $t0, $v0'
+
+
+ 
+
+
+
+    class TypeOfCilNode(InstructionCilNode):
+        def __init__(self, obj, dest):
+            self.obj = obj
+            self.dest = dest
 
     # class LabelCilNode(InstructionCilNode):
     #     def __init__(self,label):
