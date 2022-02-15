@@ -4,7 +4,7 @@ from cool.lexer.lexer import Lexer, main
 from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
 from cool.semantic.semanticAnalizer import run_semantic_pipeline
-# from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
+from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
 # from cool.mips_builder.mipsAnalizer import run_mips_gen_pipeline
 
 

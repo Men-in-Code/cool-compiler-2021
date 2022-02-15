@@ -1,6 +1,3 @@
-from git import typ
-from is_disposable_email import check
-from numpy import VisibleDeprecationWarning
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
@@ -19,6 +16,7 @@ class BaseCOOLToCILVisitor:
         self.current_type = None
         self.current_method = None
         self.current_function = None
+        self.current_type_dir = None
         self.context = context
         self.label_id = 0
         self.tag_id = 0
@@ -258,6 +256,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         cil_type = self.register_type(node.id)
         cil_type.attributes = [v.name for (v,_) in self.current_type.all_attributes()]
 
+        instance_dir = self.define_internal_local()
+        self.register_instruction(cil.LabelCilNode(f'Init_{self.current_type.name}:'))
+        self.register_instruction(cil.AllocateCilNode(self.current_type.name,instance_dir))
+        self.current_type_dir = instance_dir
+
+        attr_list =[attr for attr in node.features if isinstance(attr,AttrDeclarationNode)]
+        for attr in attr_list():
+            self.visit(attr,scope)
+
+
         func_declarations = [f for f in node.features if isinstance(f, FuncDeclarationNode)]
         for feature, child_scope in zip(func_declarations, scope.children):
             value = self.visit(feature,scope.create_child())
@@ -289,6 +297,18 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.current_method = None
 
         return self.current_function
+
+    @visitor.when(VarDeclarationNode)
+    def visit(self,node,scope):
+        ###############################################
+        # node.id = str
+        # node.type = str
+        # node.expr = ExpressionNode
+        #################################################
+        class_dir = self.current_type_dir
+        if node.expr is not None:
+            result = self.visit(node.expr,scope)
+            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
 
     @visitor.when(ConstantNumNode) #7.1 Constant
     def visit(self, node,scope):

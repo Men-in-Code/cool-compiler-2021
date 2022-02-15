@@ -130,27 +130,41 @@ class DivCilNode(BinaryCilNode):
 
 # Attributes operations
 class GetAttribCilNode(InstructionCilNode):
-    def __init__(self,instance,stype,attribute,dest):
+    #instance es la direccion de memoria donde se encuentra la instancia en memoria
+    #Type es el tipo estatico de esa instancia 
+    #attribute es el atributo de ese tipo al que se quiere acceder
+    #result es la direccion de memoria (el local internal) donde voy a guardar el valor del atributo
+    #Con el tipo estatico + el atributo puedo saber el offset
+    def __init__(self,instance,type,attribute,result):
         self.instance = instance
-        self.stype = stype
+        self.type = type
         self.attribute = attribute
-        self.dest = dest
+        self.result = result
 
 class SetAttribCilNode(InstructionCilNode):
-    def __init__(self,stype,value,attribute):
-        self.stype = stype
-        self.value = value
+    #instance es la direccion de memoria donde se encuentra la instancia en memoria
+    #Type es el tipo estatico de esa instancia 
+    #attribute es el atributo de ese tipo al que se quiere guardar la informacion
+    #value es la direccion de memoria (el local internal) donde se encuentra el valor que deseo guardar en el atributo
+    #Con el tipo estatico + el atributo puedo saber el offset
+    def __init__(self,instance,type,attribute,value):
+        self.instance = instance
+        self.type = type
         self.attribute = attribute
+        self.value = value
 
 class AllocateCilNode(InstructionCilNode):
-    def __init__(self, itype, dest):
-        self.type = itype
-        self.dest = dest
+    #Liberar espacio en el heap para la instancia y la direccion de memoria donde se creo dejarla en result
+    #result seria una local internal con la direccion en memoria de la instancia creada
+    def __init__(self, type, result):
+        self.type = type
+        self.result = result
 
 class TypeOfCilNode(InstructionCilNode):
-    def __init__(self, obj, dest):
-        self.obj = obj
-        self.dest = dest
+    #Dado una instancia (local internal que posee una direccion en memoria con el tipo dinamico) devolver el string correspondiente a ese tipo dinamico
+    def __init__(self, instance, result):
+        self.instance = instance
+        self.result = result
 
 class LabelCilNode(InstructionCilNode):
     def __init__(self,label):
@@ -166,10 +180,12 @@ class GotoIfCilNode(InstructionCilNode):
         self.label = label
 
 class ArgCilNode(InstructionCilNode):
-    def __init__(self, name):
-        self.name = name
+    #En result se guardaria la direccion en memoria donde esta el resultado de evaluar la expresion del argumento
+    def __init__(self, result):
+        self.result = result
 
 class ReturnCilNode(InstructionCilNode):
+    #Direccion en memoria donde se guarda el resultado de la funcion
     def __init__(self, value=None):
         self.value = value
 
@@ -188,6 +204,7 @@ class IntCilNode(InstructionCilNode):
 
 class StringCilNode(InstructionCilNode):
     def __init__(self,value,result):
+        #Value es un label en msg?
         self.value = value
         self.result = result
 
