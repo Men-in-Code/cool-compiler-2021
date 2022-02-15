@@ -77,7 +77,7 @@ class BaseCOOLToCILVisitor:
 
     def register_data(self, value):
         vname = f'data_{len(self.dotdata)}'
-        data_node = cil.DataNode(vname, value)
+        data_node = cil.DataCilNode(vname, value)
         self.dotdata.append(data_node)
         return data_node
 
@@ -85,9 +85,11 @@ class BaseCOOLToCILVisitor:
         for p in [t for t in self.dottypes]:
             p_type = context.get_type(p.name)
             parents = p_type.get_all_parents()
-            for p_type in parents:
+            parent_methods = []
+            for p_type in reversed(parents):
                 for method in p_type.methods:
-                    p.methods.append((method,self.to_function_name(method,p_type.name)))
+                    parent_methods.append((method,self.to_function_name(method,p_type.name)))
+            p.methods = parent_methods+p.methods
     
     def create_label(self):
         self.label_id += 1
@@ -99,20 +101,20 @@ class BaseCOOLToCILVisitor:
 
     def generateTree(self):
         classList = {}
-        for classNode in self.context.types.keys():
-            classList[classNode.parent].append(classNode) 
+        for classNode in self.context.types.values():
+            if classNode.parent is not None:
+                try:
+                    classList[classNode.parent.name].append(classNode)
+                except KeyError:
+                    classList[classNode.parent.name] = [classNode]
+        return classList
 
     def enumerateTypes(self):
         parentTree = self.generateTree()
-        self.context['Object'].class_tag = self.create_tag()
-        for child in parentTree['Object']:
-            self.enumerateTypes_aux(child,parentTree)
-
-    def enumerateTypes_aux(self,node,parentTree):
-        for child in parentTree[node]:
-            child.class_tag = self.create_tag()
-            self.enumerateTypes(child,parentTree)
-
+        self.context.types['Object'].class_tag = self.create_tag()
+        for Node in parentTree.values():
+            for child in Node:
+                child.class_tag = self.create_tag()
 
 
     def fill_builtin(self):

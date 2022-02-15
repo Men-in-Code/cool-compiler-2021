@@ -5,6 +5,7 @@ from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
 from cool.semantic.semanticAnalizer import run_semantic_pipeline
 from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
+# from cool.mips_builder.mipsAnalizer import run_mips_gen_pipeline
 
 
 import os.path
@@ -23,7 +24,13 @@ if __name__ == '__main__':
         text = file.read()
 
     text = '''
-class A {
+
+class B inherits A {
+    c : SELF_TYPE ;
+};
+
+
+class A inherits IO {
     a : Int ;
     suma ( a : Int , b : Int ) : Int 
     {
@@ -34,6 +41,7 @@ class A {
     };
     b : Int ;
 };
+
 class Main inherits IO {
   main(): IO { out_string("Hello World")};
 };'''
@@ -58,5 +66,6 @@ class Main inherits IO {
         raise Exception()
 
     context,scope = run_semantic_pipeline(ast)
-    cil_ast = run_code_gen_pipeline(ast,context,scope)
+    # mips_output = run_code_gen_pipeline(ast,context,scope)
+    # mips_output = run_mips_gen_pipeline(cil_ast,context,scope)
 
