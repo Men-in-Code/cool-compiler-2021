@@ -1,5 +1,4 @@
 from pydoc import text
-from git import typ
 from numpy import VisibleDeprecationWarning
 from cool.cil_builder.cil_ast import * 
 from cool.semantic import visitor
