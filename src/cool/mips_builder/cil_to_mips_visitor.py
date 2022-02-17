@@ -302,7 +302,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
         self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'add, $t0,$t0,$t1\n'
+        self.text_section+= f'add, $t0,$t1,$t0\n'
 
         self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
         
@@ -316,7 +316,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
         self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'sub, $t0,$t0,$t1\n'
+        self.text_section+= f'sub, $t0,$t1,$t0\n'
 
         self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
     @visitor.when(StarCilNode)
@@ -326,9 +326,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)\n' 
         self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'mul, $t0,$t0,$t1\n'
+        self.text_section+= f'mul, $t0,$t1,$t0\n'
 
         self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
 
@@ -338,9 +338,10 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
+        self.text_section += 'beq,$t1,$zero, zero_division' #ojo falta poner la etiqueta q me lleve a la funcion donde se da el error
         self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
         self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'div, $t0,$t0,$t1\n'
+        self.text_section+= f'div, $t0,$t1,$t0\n'
         self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
 
 
@@ -411,12 +412,16 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         #node.result = result
         #######################################
         result_offset = self.var_offset[self.current_function.name,node.result]
-        type_size = self.type_size[node.type] + 1
+        type_size = (self.type_size[node.type] + 1) * 4 #mas 1 para guardar el addr del tipo
         self.text_section += '\n'
+        
         self.text_section += f'addi $a0, $zero, {type_size}\n' #ojo pudiera faltar un +4
         self.text_section += 'li, $v0, 9\n'
         self.text_section += 'blt, $sp, $v0,heap_overflow\n'
         self.text_section += 'move, $t0, $v0\n'
+
+        self.text_section += f'la $t1,{node.type} '#recupero el addr del tipo
+        self.text += 'sw $t1, 0($t0)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
         self.text_section += f'sw, $t0, {result_offset}($sp)\n'
 
 
@@ -461,24 +466,30 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
 
+    
+    # class TypeOfCilNode(InstructionCilNode):
+    #     def __init__(self, obj, dest):
+    #         self.obj = obj
+    #         self.dest = dest
+    @visitor.when (LabelCilNode)
+    def visit(self, node):
+        # self.label = label
+        self.text_section += f' {node.label}:'
+        
 
-    class TypeOfCilNode(InstructionCilNode):
-        def __init__(self, obj, dest):
-            self.obj = obj
-            self.dest = dest
+    @visitor.when (GotoCilNode)
+    def visit(self, node):
+        # self.label = label
+        self.text_section += f'j {node.label}'
 
-    # class LabelCilNode(InstructionCilNode):
-    #     def __init__(self,label):
-    #         self.label = label
-
-    # class GotoCilNode(InstructionCilNode):
-    #     def __init__(self,label):
-    #         self.label = label
-
-    # class GotoIfCilNode(InstructionCilNode):
-    #     def __init__(self,val,label):
+    @visitor.when (GotoIfCilNode)
+    def visit(self, node):
     #         self.val = val
     #         self.label = label
+        offset = self.var_offset[self.current_function,node.val]
+        self.text_section += f'lw t0, {offset}($sp)'
+        self.text_section += f'lw t1, 4(t0)'
+
 
     # class ArgCilNode(InstructionCilNode):
     #     def __init__(self, name):
