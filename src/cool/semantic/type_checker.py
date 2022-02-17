@@ -293,6 +293,7 @@ class TypeChecker:
             if node.obj is None:
                 node.obj = InstantiateNode(self.current_type.name,node.row,node.column) 
                 obj_type = self.current_type
+                node.obj.computed_type = None
             else:
                 self.visit(node.obj, scope)
                 obj_type = node.obj.computed_type####

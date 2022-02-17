@@ -65,18 +65,26 @@ class AssignCilNode(InstructionCilNode): # 7.3 Assignment
         self.dest = dest
         self.source = source
 
-class StaticCallCilNode(InstructionCilNode): #7.4 Distaptch Static
-    def __init__(self,expresion_instance,expresion_type,method_name,args, result):
-        self.expresion_instance = expresion_instance
-        self.expresion_type = expresion_type
+class StaticCallCilNode(InstructionCilNode): #7.4 Distaptch Static id.()
+    def __init__(self,type,method_name,args, result):
+        # self.expresion_instance = expresion_instance
+        self.type = type
         self.method_name = method_name
         self.args = args
         self.result = result
 
-class DynamicCallCilNode(InstructionCilNode): #7.4 Dispatch Dynamic
-    def __init__(self,expresion_instance, dynamic_type, method_name,args, result):
+class DynamicCallCilNode(InstructionCilNode): #7.4 Dispatch Dynamic <expr>.id()
+    def __init__(self, expresion_instance,static_type, method_name,args, result):
         self.expresion_instance = expresion_instance
-        self.dynamic_type = dynamic_type
+        self.static_type = static_type
+        self.method_name = method_name
+        self.args = args
+        self.result = result
+
+class DynamicParentCallCilNode(InstructionCilNode): #7.4 Dispatch <expr>@type.id()
+    def __init__(self, expresion_instance,static_type, method_name,args, result):
+        self.expresion_instance = expresion_instance
+        self.static_type = static_type
         self.method_name = method_name
         self.args = args
         self.result = result
@@ -153,6 +161,13 @@ class SetAttribCilNode(InstructionCilNode):
         self.attribute = attribute
         self.value = value
 
+class SetDefaultCilNode(InstructionCilNode):
+    def __init__(self,instance,type,attribute,value):
+        self.instance = instance
+        self.type = type
+        self.attribute = attribute
+        self.value = value
+
 class AllocateCilNode(InstructionCilNode):
     #Liberar espacio en el heap para la instancia y la direccion de memoria donde se creo dejarla en result
     #result seria una local internal con la direccion en memoria de la instancia creada
@@ -221,9 +236,9 @@ class ReadCilNode(InstructionCilNode):
         self.dest = dest
 
 class PrintCilNode(InstructionCilNode):
-    def __init__(self,self_param,str_addr):
+    def __init__(self,self_param,to_print):
         self.self_param = self_param
-        self.str_addr = str_addr
+        self.to_print = to_print
 class AbortCilNode(InstructionCilNode):
     pass
 class TypeNameCilNode(InstructionCilNode):

@@ -1,3 +1,4 @@
+from pandas import offsets
 from cool.cil_builder.cil_ast import * 
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
@@ -51,12 +52,12 @@ class BaseCILToMIPSVisitor:
     def fill_dotdata_with_errors(self):
         self.data_section+= '''
     #Errors
-    call_void_error: .asciiz 'Runtime Error 1: A dispatch (static or dynamic) on void'
-    case_void_expr: .asciiz 'Runtime Error 2: A case on void.'
-    case_branch_error: .asciiz 'Runtime Error 3: Execution of a case statement without a matching branch.'
-    zero_division: .asciiz 'Runtime Error 4: Division by zero'
-    substring_out_of_range: .asciiz 'Runtime Error 5: Substring out of range.'
-    heap_overflow: .asciiz 'Runtime Error 5: Heap overflow'\n
+    call_void_error: .asciiz "Runtime Error 1: A dispatch (static or dynamic) on void"
+    case_void_expr: .asciiz "Runtime Error 2: A case on void."
+    case_branch_error: .asciiz "Runtime Error 3: Execution of a case statement without a matching branch."
+    zero_division: .asciiz "Runtime Error 4: Division by zero"
+    substring_out_of_range: .asciiz "Runtime Error 5: Substring out of range."
+    heap_overflow: .asciiz "Runtime Error 6: Heap overflow"\n
 '''
 
 
@@ -78,48 +79,60 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.dotdata = node.dotdata
         self.fill_dotdata_with_errors()
 
+        self.text_section+= 'j function_main_at_Main\n'
+
+
         self.data_section+= '#TYPES\n'
         for type in self.dottypes:
-            self.data_section+= f'type_{type.name}: .asciiz "{type.name}"\n'
-            self.data_section+= f'type_{type.name}_methods:\n'
-            for method in type.methods:
-                self.data_section+= f'.word {method[1]}\n'
-            self.data_section+= '\n'
-        self.data_section+= '\n\n'
+            self.visit(type)
         for data in self.dotdata:
             self.visit(data)
-        # for inst in self.dotcode:
-        #     self.visit(inst)
+        for code in self.dotcode:
+            self.visit(code)
+
+
+        self.text_section+=f'\n'
+        self.text_section+=f'end:\n' 
+        self.text_section+=f'li, $v0, 10\n'
+        self.text_section+=f'syscall\n'
         return self.data_section+self.text_section
 
     @visitor.when(TypeCilNode)
     def visit(self,node):
-        for i,param in enumerate(node.attributes):
-            self.attribute_offset[node.name][param] = 4*i
-            i+=1
+        # self.text_section += '\n'
+
+        self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
+        self.data_section+= f'type_{node.name}_methods:\n'
+
+        for i,attr in enumerate(node.attributes):
+            self.attribute_offset[node.name,attr] = 4*i
+        self.type_size[node.name] = len(node.attributes)
 
         for i,method in enumerate(node.methods):
+            self.data_section+= f'.word {method[1]}\n'
             self.method_offset[node.name,method] = 4*i
-            i+=1
+
+        self.data_section+= '\n'
       
     @visitor.when(DataCilNode)
     def visit(self,node):
-        self.data_section += f'{node.name}: .asciiz {node.value}'
+        self.data_section += f'{node.name}: .asciiz "{node.value}"\n'
             
     @visitor.when(FunctionCilNode)
     def visit(self,node):
-        def __init__(self, fname, params, localvars, instructions):
-            self.name = fname
-            self.params = params
-            self.localvars = localvars
-            self.instructions = instructions
-
+        #############################################3
+        #     node.name = fname
+        #     node.params = params
+        #     node.localvars = localvars
+        #     node.instructions = instructions
+        #############################################3
         self.current_function = node
         for i,var in enumerate(node.params + node.localvars):
-            self.data_offset[self.current_function.name,var.name] = 4*i
+            self.var_offset[self.current_function.name,var.name] = 4*i
 
+        self.text_section += '\n'
         self.text_section += f'{node.name}:\n'
-        self.text_section += f'addi, $sp, $sp, {-4*len(node.params + node.localvars)}'#get space for vars
+        self.text_section += f'addi, $sp, $sp, {-4*len(node.params + node.localvars)}\n'#get space for vars
         ## ojo faltaria ver que hago con el retorno
 
         for inst in node.instructions:
@@ -162,21 +175,100 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.dest = dest
     #         self.source = source
 
-    # class StaticCallCilNode(InstructionCilNode): #7.4 Distaptch Static
-    #     def __init__(self,expresion_instance,expresion_type,method_name,args, result):
-    #         self.expresion_instance = expresion_instance
-    #         self.expresion_type = expresion_type
-    #         self.method_name = method_name
-    #         self.args = args
-    #         self.result = result
+    @visitor.when(StaticCallCilNode) #7.4 Distaptch Static
+    def visit(self,node): 
+        #########################################################################
+        # node.type = type
+        # node.method_name = method_name
+        # node.args = args
+        # node.result = result
+        ########################################################################
+        arg_amount = (len(node.args)+1)*4
+        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
+        self.text_section+= f'sw $ra, ($sp)\n'
 
-    # class DynamicCallCilNode(InstructionCilNode): #7.4 Dispatch Dynamic
-    #     def __init__(self,expresion_instance, dynamic_type, method_name,args, result):
-    #         self.expresion_instance = expresion_instance
-    #         self.dynamic_type = dynamic_type
-    #         self.method_name = method_name
-    #         self.args = args
-    #         self.result = result
+        for i,arg in enumerate(node.args):
+            arg_offset = self.var_offset[self.current_function.name,arg]
+            self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
+            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+
+        self.text_section+= f'jal {node.method_name}\n'
+
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += f'sw $v0, {result_offset}($sp)\n'
+
+
+    @visitor.when(DynamicCallCilNode) #7.4 Dispatch Dynamic
+    def visit(self,node):
+        #########################################################################
+        # node.expresion_instance = expresion_instance
+        # node.static_type = static_type
+        # node.method_name = method_name
+        # node.args = args
+        # node.result = result
+        ########################################################################
+        arg_amount = (len(node.args)+1)*4
+        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
+        self.text_section+= f'sw $ra, ($sp)\n'
+
+        for i,arg in enumerate(node.args):
+            arg_offset = self.var_offset[self.current_function.name,arg]
+            self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
+            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+
+
+        expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
+        self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO
+        #El tipo dinamico se consigue a partir de expresion offset
+        self.text_section += 'la $t0, void\n'
+        self.text_section += 'beq $v0, $t0, call_void_expr\n'
+        
+
+
+        self.text_section += f'la $v1, ($v0)'
+        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($v1)'
+        self.text_section += 'jalr $v2\n'
+
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += f'sw $v0, {result_offset}($sp)\n'
+
+
+
+
+    @visitor.when(DynamicParentCallCilNode) #7.4 Dispatch Dynamic
+    def visit(self,node):
+        #########################################################################
+        # node.expresion_instance = expresion_instance
+        # node.static_type = static_type
+        # node.method_name = method_name
+        # node.args = args
+        # node.result = result
+        ########################################################################
+        arg_amount = (len(node.args)+1)*4
+        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
+        self.text_section+= f'sw $ra, ($sp)\n'
+
+        for i,arg in enumerate(node.args):
+            arg_offset = self.var_offset[self.current_function.name,arg]
+            self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
+            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+
+
+        expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
+        self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO puede que no se haga la operacion asi
+        #El tipo dinamico se consigue a partir de expresion offset
+        self.text_section += 'la $t0, void\n'
+        self.text_section += 'beq $v0, $t0, call_void_expr\n'
+        
+        self.text_section += f'la $v1, {node.static_type}_methods'
+        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($vi)'
+        self.text_section += 'jalr $v2\n'
+
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += f'sw $v0, {result_offset}($sp)\n'
 
     # class BlockCilNode(InstructionCilNode): #7.7 Blocks
     #     pass
@@ -203,82 +295,170 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #Binary Aritmetic Operations
     @visitor.when(PlusCilNode)
     def visit(self, node):   
-        offset_right = self.var_offset[self.current_function,node.right]
-        offset_left = self.var_offset[self.current_function,node.left]
-        offset_dest = self.var_offset[self.current_function,node.dest]
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)'
-        self.text_section+= f'add, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
+        self.text_section+= f'add, $t0,$t0,$t1\n'
 
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
         
         
     @visitor.when(MinusCilNode)
     def visit(self, node):
-        offset_right = self.var_offset[self.current_function,node.right]
-        offset_left = self.var_offset[self.current_function,node.left]
-        offset_dest = self.var_offset[self.current_function,node.dest]
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)'
-        self.text_section+= f'sub, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
+        self.text_section+= f'sub, $t0,$t0,$t1\n'
 
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
     @visitor.when(StarCilNode)
     def visit(self, node):
-        offset_right = self.var_offset[self.current_function,node.right]
-        offset_left = self.var_offset[self.current_function,node.left]
-        offset_dest = self.var_offset[self.current_function,node.dest]
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)'
-        self.text_section+= f'mul, $t0,$t0,$t1'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
+        self.text_section+= f'mul, $t0,$t0,$t1\n'
 
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
 
     @visitor.when(DivCilNode)
     def visit(self, node):
-        offset_right = self.var_offset[self.current_function,node.right]
-        offset_left = self.var_offset[self.current_function,node.left]
-        offset_dest = self.var_offset[self.current_function,node.dest]
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
+        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
+        self.text_section+= f'div, $t0,$t0,$t1\n'
+        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)'
-        self.text_section+= f'div, $t0,$t0,$t1'
 
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)'
+    @visitor.when(GetAttribCilNode)
+    def visit(self,node):
+        #######################################
+            # node.instance = instance
+            # node.type = type
+            # node.attribute = attribute
+            # node.result = result
+        #######################################
+        attr_offset = self.attribute_offset[node.type,node.attribute]
+        instance_offset = self.var_offset[self.current_function.name,node.instance]
+        result_offset = self.var_offset[self.current_function.name,node.result]
 
+        # (instance_offset+attr_offset)
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'lw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
 
-    # Attributes operations
-    # class GetAttribCilNode(InstructionCilNode):
-    #     def __init__(self,instance,stype,attribute,dest):
-    #         self.instance = instance
-    #         self.stype = stype
-    #         self.attribute = attribute
-    #         self.dest = dest
-
+    @visitor.when(SetAttribCilNode)
+    def visit(self,node):
     # class SetAttribCilNode(InstructionCilNode):
-    #     def __init__(self,stype,value,attribute):
-    #         self.stype = stype
-    #         self.value = value
-    #         self.attribute = attribute
+    #######################################
+        # node.instance = instance
+        # node.type = type
+        # node.attribute = attribute
+        # node.value = value
+    #######################################
+        attr_offset = self.attribute_offset[node.type,node.attribute]
+        instance_offset = self.var_offset[self.current_function.name,node.instance]
+        value_offset = self.var_offset[self.current_function.name,node.value]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t1, {value_offset}($sp)   \n' #Guardo el valor 
+        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'sw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+
+
+    @visitor.when(SetDefaultCilNode)
+    def visit(self,node):
+    # class SetAttribCilNode(InstructionCilNode):
+    #######################################
+        # node.instance = instance
+        # node.type = type
+        # node.attribute = attribute
+        # node.value = value
+    #######################################
+        attr_offset = self.attribute_offset[node.type,node.attribute]
+        instance_offset = self.var_offset[self.current_function.name,node.instance]
+        if node.value == '0':
+            value = f'move, $t1, $zero\n'
+        elif node.value == "":
+            value = f'la, $t1, data_empty\n'
+        else:
+            value = f''
+
+        # self.text_section+= f'lw, $t1, {value}   \n' #Guardo el valor 
+        self.text_section+= value
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'sw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
 
     @visitor.when(AllocateCilNode)
     def visit(self, node):
-        def __init__(self, itype, dest):
-            self.type = itype
-            self.dest = dest
+        #######################################
+        #node.type = type
+        #node.result = result
+        #######################################
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        type_size = self.type_size[node.type] + 1
+        self.text_section += '\n'
+        self.text_section += f'addi $a0, $zero, {type_size}\n' #ojo pudiera faltar un +4
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'blt, $sp, $v0,heap_overflow\n'
+        self.text_section += 'move, $t0, $v0\n'
+        self.text_section += f'sw, $t0, {result_offset}($sp)\n'
 
-        type_size = self.type_size[node.itype] + 1
-        self.text_section += f'addi $a0, $zero, {type_size}' #ojo pudiera faltar un +4
-        self.text_section += 'li, $v0, 9'
-        self.text_section += 'blt, $st, $v0,heap_overflow'
 
-        self.text_section += 'move $t0, $v0'
+    @visitor.when(ReturnCilNode)
+    def visit(self,node):
+        ###########################################
+        #node.value = value
+        ###########################################
+        # self.text_section += '\n'
+        # if node.value:
+        #     offset = self.var_offset[self.current_function.name,node.value]
+        #     self.text_section += f'lw $a1, {offset}($sp)\n'
+        # else:
+        #     self.text_section += f'move $a1, $zero\n'
+        pass
 
+#Function Mips Implementattion
+    @visitor.when(PrintStringCilNode)
+    def visit(self, node):
+        ###########################################
+        # node.self_param = self_param
+        # node.to_print = to_print
+        ###########################################
+        str_offset = self.var_offset[self.current_function.name,node.to_print]
 
- 
+        self.text_section += '\n'
+        self.text_section+= f'li, $v0, 4\n'
+        self.text_section+= f'la, $a0, {str_offset}($sp)\n'
+        self.text_section+= f'syscall\n'
+
+    @visitor.when (PrintIntCilNode)
+    def visit(self, node):
+        ###########################################
+        # node.self_param = self_param
+        # node.to_print = to_print 
+        ###########################################
+        str_offset = self.var_offset[self.current_function.name,node.to_print]
+        self.text_section += '\n'
+        self.text_section+= f'li, $v0, 1\n'
+        self.text_section+= f'la, $a0, {str_offset}($sp)\n'
+        self.text_section+= f'syscall\n'
+
 
 
 
@@ -304,10 +484,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #     def __init__(self, name):
     #         self.name = name
 
-    # class ReturnCilNode(InstructionCilNode):
-    #     def __init__(self, value=None):
-    #         self.value = value
-
     # class LoadCilNode(InstructionCilNode):
     #     def __init__(self, dest, msg):
     #         self.dest = dest
@@ -318,12 +494,13 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #TypesCilNodes falta bool ojo
     @visitor.when(IntCilNode)
     def visit(self, node):   
-        # def __init__(self,value,result):
-        #     self.value = value
-        #     self.result = result
+        #     node.value = value
+        #     node.result = result
         offset = self.var_offset[self.current_function.name,node.result]
-        self.text_section += f'addi, t0, $zero, {node.value}'
-        self.text_section += f'sw, $t0, {offset}($sp)'
+        self.text_section += '\n'
+        self.text_section += f'lw, $t0, {offset}($sp)\n'
+        self.text_section += f'addi, $t1, $zero, {node.value}\n'
+        self.text_section += f'sw, $t1, 4($t0)\n'
 
 
 
@@ -344,10 +521,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.input_var = input_var
     #         self.dest = dest
 
-    # class PrintCilNode(InstructionCilNode):
-    #     def __init__(self,self_param,str_addr):
-    #         self.self_param = self_param
-    #         self.str_addr = str_addr
     # class AbortCilNode(InstructionCilNode):
     #     pass
     # class TypeNameCilNode(InstructionCilNode):
@@ -358,10 +531,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #     def __init__(self, type, result):
     #         self.type = type
     #         self.result = result
-    # class PrintStringCilNode(PrintCilNode):
-    #     pass
-    # class PrintIntCilNode(PrintCilNode):
-    #     pass
+    
+  
+        
     # class ReadStringCilNode(ReadCilNode):
     #     pass
     # class ReadIntCilNode(ReadCilNode):

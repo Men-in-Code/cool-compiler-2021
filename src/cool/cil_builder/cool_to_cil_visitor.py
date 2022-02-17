@@ -116,13 +116,28 @@ class BaseCOOLToCILVisitor:
 
 
     def fill_builtin(self):
-        built_in_types = [self.context.get_type('Object'),self.context.get_type('IO'),self.context.get_type('Int'),self.context.get_type('String')]
+        built_in_types = [
+            self.context.get_type('Object'),
+            self.context.get_type('IO'),
+            self.context.get_type('Int'),
+            self.context.get_type('String'),
+            self.context.get_type('Bool')]
         for t in built_in_types:
             cilType = self.register_type(t.name)
             cilType.methods = [(m,self.to_function_name(m,t.name)) for m in t.methods]
+            if cilType.name in ['Int','String','Bool']:
+                cilType.attributes.append('value')
+
 
         #=============================Object=========================================
         self.current_type = self.context.get_type('Object')
+
+        #init_Object
+        self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
+        self.register_param(VariableInfo('self',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        self.register_instruction(cil.ReturnCilNode(result))
 
         #function abort
         self.current_function = self.register_function(self.to_function_name('abort',self.current_type.name))
@@ -138,7 +153,7 @@ class BaseCOOLToCILVisitor:
         self.register_instruction(cil.ReturnCilNode(result))
 
         #function copy
-        self.current_function = self.register_function(self.to_function_name('type_name',self.current_type.name))
+        self.current_function = self.register_function(self.to_function_name('copy',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
         result = self.define_internal_local()
         self.register_instruction(cil.CopyCilNode(param_self,result))
@@ -146,6 +161,17 @@ class BaseCOOLToCILVisitor:
         
         #=========================Int=========================================
         self.current_type = self.context.get_type('Int')
+        
+        
+        #init_Int
+        # self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
+        # param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        # param1 = self.register_param(VariableInfo('value',self.current_type.name))
+        # result = self.define_internal_local()
+        # self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        # self.register_instruction(cil.IntCilNode(param1,result))
+        # self.register_instruction(cil.ReturnCilNode(result))
+
         #=========================String=========================================
         self.current_type = self.context.get_type('String')
         #function length
@@ -174,6 +200,14 @@ class BaseCOOLToCILVisitor:
 
         #=========================Bool=========================================
         self.current_type = self.context.get_type('Bool')
+        #init_Bool
+        # self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
+        # param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        # param1 = self.register_param(VariableInfo('value',self.current_type.name))
+        # result = self.define_internal_local()
+        # self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        # self.register_instruction(cil.IntCilNode(param1,result))
+        # self.register_instruction(cil.ReturnCilNode(result))
 
         #=========================IO=========================================
         self.current_type = self.context.get_type('IO')
@@ -235,7 +269,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.fill_builtin()
         self.enumerateTypes()
 
-
         for declaration, child_scope in zip(node.declarations, scope.children):
             self.visit(declaration, child_scope)
         self.fill_cil_types(self.context)
@@ -256,14 +289,21 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         cil_type = self.register_type(node.id)
         cil_type.attributes = [v.name for (v,_) in self.current_type.all_attributes()]
 
+
+        #Register Init_Class Function
+        self.current_function = self.register_function(f'Init_{self.current_type.name}')
+        self.register_param(VariableInfo('self',self.current_type.name))
         instance_dir = self.define_internal_local()
-        self.register_instruction(cil.LabelCilNode(f'Init_{self.current_type.name}:'))
+        # self.register_instruction(cil.LabelCilNode(f'Init_{self.current_type.name}:'))
         self.register_instruction(cil.AllocateCilNode(self.current_type.name,instance_dir))
         self.current_type_dir = instance_dir
 
         attr_list =[attr for attr in node.features if isinstance(attr,AttrDeclarationNode)]
-        for attr in attr_list():
+        for attr in attr_list:
             self.visit(attr,scope)
+
+        self.current_function = None
+        #End register Init_Class Function
 
 
         func_declarations = [f for f in node.features if isinstance(f, FuncDeclarationNode)]
@@ -290,7 +330,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
 
         self.register_param(VariableInfo('self',self.current_type.name))
         for param in node.params:
-            self.register_param(VariableInfo(param.id,param.type))
+            self.register_param(VariableInfo(f'param_{param.id}',param.type))
         value = self.visit(node.body, scope)
 
         self.register_instruction(cil.ReturnCilNode(value))
@@ -309,6 +349,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         if node.expr is not None:
             result = self.visit(node.expr,scope)
             self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
+        else:
+            if node.type == 'Int':
+                self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'0'))
+            elif node.type == 'String':
+                self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,""))
+            elif node.type == 'Bool':
+                self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'0'))
+            else:
+                self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'void'))
+
 
     @visitor.when(ConstantNumNode) #7.1 Constant
     def visit(self, node,scope):
@@ -316,7 +366,10 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.lex -> str
         ###############################
         returnVal = self.define_internal_local()
-        self.register_instruction(cil.IntCilNode(returnVal,node.lex)) 
+        # self.register_instruction(cil.StaticCallCilNode('Int','Init_Int',[node.val],returnVal))
+        self.register_instruction(cil.AllocateCilNode('Int',returnVal))
+        self.register_instruction(cil.IntCilNode(int(node.lex),returnVal))
+        # self.register_instruction(cil.SetAttribCilNode(returnVal,'Int','value',node.lex)) 
         return returnVal
 
     @visitor.when(StringNode) #7.1 Constant
@@ -325,7 +378,8 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
     # node.lex -> str
     ###############################
         returnVal = self.define_internal_local()
-        self.register_data(cil.StringCilNode(node.lex,returnVal)) 
+        data_name = self.register_data(node.lex)
+        self.register_instruction(cil.StringCilNode(data_name.name,returnVal)) 
         return returnVal
 
     @visitor.when(VariableNode) #7.2 Identifiers
@@ -334,15 +388,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.lex -> str
         ###############################
         if scope.is_cil_defined(node.lex):
-            self.register_local(VariableInfo(node.lex,None))
+            cool_var = scope.find_variable(node.lex)
+            self.register_local(VariableInfo(node.lex,cool_var.type))
             return node.lex
         elif node.lex in [param_nodes.name for param_nodes in self.params]:
             return f'param_{node.lex}'
         # elif node.lex in self.current_type.all_attributes():
         
         #### que iria en instance ###### ojo
-        new_local = f'attrib_{self.define_internal_local()}'
-        self.register_instruction(cil.GetAttribCilNode(None,self.current_type.name,node.lex,new_local))
+        new_local = self.define_internal_local()
+        self.register_instruction(cil.GetAttribCilNode('self',self.current_type.name,node.lex,new_local))
         return new_local
 
 
@@ -369,22 +424,28 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
     @visitor.when(CallNode) #7.4 Dispatch
     def visit(self, node, scope):
         ###############################
-        #self.obj = ExpressionNode
-        #self.id = str
-        #self.args = args
-        #self.parent = Type
+        #node.obj = ExpressionNode
+        #node.id = str
+        #node.args = args
+        #node.parent = Type
         ###############################
         result = self.define_internal_local()
-        expresion = self.visit(node.obj,scope)
+        arg_list = []
 
-        arg_list = [cil.ArgCilNode(expresion)]
         for a in reversed(node.args):
             method_arg = self.visit(a,scope)
-            arg_list.append(cil.ArgCilNode(method_arg))
-        if node.parent is not None:
-            self.register_instruction(cil.StaticCallCilNode(expresion,node.computed_type,None,arg_list,result))
+            arg_list.append(method_arg)
+
+        if node.obj and node.parent is None:
+            # self_instance = self.define_internal_local()
+            self.register_instruction(cil.StaticCallCilNode(self.current_type.name,node.id,arg_list,result))
         else:
-            self.register_instruction(cil.DynamicCallCilNode(expresion,node.computed_type,None,arg_list,result))
+            expresion = self.visit(node.obj,scope)
+            # arg_list.append(expresion)
+            if node.parent is None:
+                self.register_instruction(cil.DynamicCallCilNode(expresion,node.obj.computed_type,node.id,arg_list,result))
+            else:
+                self.register_instruction(cil.DynamicParentCallCilNode(expresion,node.parent.name,node.id,arg_list,result))
     
     @visitor.when(IfNode) #7.5 Conditional
     def visit(self,node,scope):
