@@ -196,7 +196,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'jal {node.method_name}\n'
 
         result_offset = self.var_offset[self.current_function.name,node.result]
-        self.text_section += f'sw $v0, {result_offset}($sp)\n'
+        self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
 
     @visitor.when(DynamicCallCilNode) #7.4 Dispatch Dynamic
@@ -232,7 +232,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += 'jalr $v2\n'
 
         result_offset = self.var_offset[self.current_function.name,node.result]
-        self.text_section += f'sw $v0, {result_offset}($sp)\n'
+        self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
 
 
@@ -301,8 +301,12 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += '\n'
 
         self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'add, $t0,$t1,$t0\n'
+        self.text_section+=f'lw,$t1,-4($t0)'
+
+        self.text_section+= f'lw, $t0, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,-4($t0)'
+
+        self.text_section+= f'add, $t0,$t1,$t2\n'
 
         self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
         
@@ -360,7 +364,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # (instance_offset+attr_offset)
         self.text_section += '\n'
         self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'lw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'lw, $t1, -{attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
         self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
 
     @visitor.when(SetAttribCilNode)
@@ -378,7 +382,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += '\n'
         self.text_section+= f'lw, $t1, {value_offset}($sp)   \n' #Guardo el valor 
         self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'sw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'sw, $t1, -{attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
 
 
     @visitor.when(SetDefaultCilNode)
@@ -417,11 +421,12 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         
         self.text_section += f'addi $a0, $zero, {type_size}\n' #ojo pudiera faltar un +4
         self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
         self.text_section += 'blt, $sp, $v0,heap_overflow\n'
         self.text_section += 'move, $t0, $v0\n'
 
-        self.text_section += f'la $t1,{node.type} '#recupero el addr del tipo
-        self.text += 'sw $t1, 0($t0)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
+        self.text_section += f'la $t1,{node.type}_methods '#recupero el addr del tipo
+        self.text += 'sw $t1, ($t0)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
         self.text_section += f'sw, $t0, {result_offset}($sp)\n'
 
 
@@ -430,12 +435,12 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         ###########################################
         #node.value = value
         ###########################################
-        # self.text_section += '\n'
-        # if node.value:
-        #     offset = self.var_offset[self.current_function.name,node.value]
-        #     self.text_section += f'lw $a1, {offset}($sp)\n'
-        # else:
-        #     self.text_section += f'move $a1, $zero\n'
+        self.text_section += '\n'
+        if node.value:
+            offset = self.var_offset[self.current_function.name,node.value]
+            self.text_section += f'lw $s0, {offset}($sp)\n'
+        else:
+            self.text_section += f'move $a1, $zero\n'
         pass
 
 #Function Mips Implementattion

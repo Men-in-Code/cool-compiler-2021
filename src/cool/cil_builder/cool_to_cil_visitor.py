@@ -164,13 +164,14 @@ class BaseCOOLToCILVisitor:
         
         
         #init_Int
-        # self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
-        # param_self = self.register_param(VariableInfo('self',self.current_type.name))
-        # param1 = self.register_param(VariableInfo('value',self.current_type.name))
-        # result = self.define_internal_local()
-        # self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        self.current_function = self.register_function('init_Int')
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('value',self.current_type.name))
+        result = self.define_internal_local()
+        self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
+        self.register_instruction(cil.SetAttribCilNode(result,'Int','value', param1))
         # self.register_instruction(cil.IntCilNode(param1,result))
-        # self.register_instruction(cil.ReturnCilNode(result))
+        self.register_instruction(cil.ReturnCilNode(result))
 
         #=========================String=========================================
         self.current_type = self.context.get_type('String')
@@ -366,9 +367,10 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.lex -> str
         ###############################
         returnVal = self.define_internal_local()
-        # self.register_instruction(cil.StaticCallCilNode('Int','Init_Int',[node.val],returnVal))
-        self.register_instruction(cil.AllocateCilNode('Int',returnVal))
-        self.register_instruction(cil.IntCilNode(int(node.lex),returnVal))
+        
+        # self.register_instruction(cil.AllocateCilNode('Int',returnVal))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[node.val],returnVal))
+        # self.register_instruction(cil.IntCilNode(int(node.lex),returnVal))
         # self.register_instruction(cil.SetAttribCilNode(returnVal,'Int','value',node.lex)) 
         return returnVal
 
