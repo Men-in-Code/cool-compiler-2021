@@ -22,17 +22,11 @@ if __name__ == '__main__':
         text = file.read()
 
     text = ''' 
-    class B inherits A 
-    {
-        suma():Int{
-            x
-            };
-     } ;
     class Main inherits IO {
-    suma(a:Int,b:Int):Int{
-        b + a
+    suma():Int{
+        5
     };
-   main(): IO { out_int((new A).f() ) };
+   main(): IO { out_int( (new A).f()) };
     };
     class A {
         x:Int<-100;
