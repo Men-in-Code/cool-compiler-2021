@@ -226,16 +226,16 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.args = args
         # node.result = result
         ########################################################################
-        arg_amount = (len(node.args)+1)*4
+        arg_amount = (len(node.args))*4
 
 
-        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'move $t0 $sp #call to function {node.method_name}\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
         # self.text_section+= f'sw $ra, ($sp)\n'
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
-            self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
-            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+            self.text_section+= f'lw, $s0, {arg_offset}($t0) #loading param_{arg}\n'
+            self.text_section+= f'sw, $s0 {(i)*4}($sp) #setting param for function call\n'
 
         if node.method_name[:4] == 'init':
             self.text_section+= f'jal {node.method_name}\n'
@@ -250,7 +250,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'addi, $sp, $sp, {arg_amount}\n'
 
         result_offset = self.var_offset[self.current_function.name,node.result]
-        self.text_section += f'sw $s0, {result_offset}($sp)\n'
+        self.text_section += f'sw $s0, {result_offset}($sp) #Saving result on {node.result}\n'
 
         # self.text_section+= 'jr $ra\n'
 
@@ -264,7 +264,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.args = args
         # node.result = result
         ########################################################################
-        arg_amount = (len(node.args)+1)*4
+        arg_amount = (len(node.args))*4
         self.text_section+= f'move $t0 $sp\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
         # self.text_section+= f'sw $ra, ($sp)\n'
@@ -272,7 +272,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
             self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
-            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+            self.text_section+= f'sw, $s0 {(i)*4}($sp)\n'
 
 
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
@@ -362,11 +362,11 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += '\n'
 
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,-4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
 
 
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,-4($t3)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
 
 
 
@@ -427,8 +427,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         # (instance_offset+attr_offset)
         self.text_section += '\n'
-        self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'lw, $t1, -{attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'lw, $t3, {instance_offset}($sp) #getting instance {node.instance} \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'lw, $t1, {attr_offset}($t3)  #getting offset {node.attribute} \n' #Cargar en un registro el valor del atributo
         self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
 
     @visitor.when(SetAttribCilNode)
@@ -446,7 +446,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += '\n'
         self.text_section+= f'lw, $t1, {value_offset}($sp)   \n' #Guardo el valor 
         self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'sw, $t1, -{attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
+        self.text_section+= f'sw, $t1, {attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
 
 
     @visitor.when(SetDefaultCilNode)
@@ -523,7 +523,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.when (PrintIntCilNode)
     def visit(self, node):
         ###########################################
-        # node.self_param = self_param
         # node.to_print = to_print 
         ###########################################
         str_offset = self.var_offset[self.current_function.name,node.to_print]

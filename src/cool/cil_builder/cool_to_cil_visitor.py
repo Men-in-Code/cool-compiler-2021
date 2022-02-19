@@ -134,11 +134,9 @@ class BaseCOOLToCILVisitor:
         self.current_type = self.context.get_type('Object')
 
         #init_Object
-        self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
-        # self.register_param(VariableInfo('self',self.current_type.name))
-        result = self.define_internal_local()
-        self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
-        self.register_instruction(cil.ReturnCilNode(result))
+        self.current_function = self.register_function('init_Object')
+        self_param = self.register_param(VariableInfo('self',self.current_type.name))
+        self.register_instruction(cil.ReturnCilNode(self_param))
 
         #function abort
         self.current_function = self.register_function(self.to_function_name('abort',self.current_type.name))
@@ -165,14 +163,10 @@ class BaseCOOLToCILVisitor:
         
         #init_Int
         self.current_function = self.register_function('init_Int')
-        # param_self = self.register_param(VariableInfo('self',self.current_type.name))
         self_param = self.register_param(VariableInfo('self',self.current_type.name))
         param1 = self.register_param(VariableInfo('value',self.current_type.name))
-        result = self.define_internal_local()
-        self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
-        self.register_instruction(cil.SetAttribCilNode(result,'Int','value', param1))
-        # self.register_instruction(cil.IntCilNode(param1,result))
-        self.register_instruction(cil.ReturnCilNode(result))
+        self.register_instruction(cil.SetAttribCilNode(self_param,'Int','value', param1))
+        self.register_instruction(cil.ReturnCilNode(self_param))
 
         #=========================String=========================================
         self.current_type = self.context.get_type('String')
@@ -182,7 +176,6 @@ class BaseCOOLToCILVisitor:
         self_param = self.register_param(VariableInfo('self',self.current_type.name))
         param1 = self.register_param(VariableInfo('value',self.current_type.name))
         result = self.define_internal_local()
-        self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
         self.register_instruction(cil.SetAttribCilNode(result,'String','value',param1))
         self.register_instruction(cil.ReturnCilNode(result))
 
@@ -229,7 +222,7 @@ class BaseCOOLToCILVisitor:
         param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
         result = self.define_internal_local()
         self.register_instruction(cil.GetAttribCilNode(param1,'String','value',result))
-        self.register_instruction(cil.PrintStringCilNode(param_self,result))
+        self.register_instruction(cil.PrintStringCilNode(result))
         self.register_instruction(cil.ReturnCilNode(param_self))
 
         #function out_int
@@ -238,7 +231,7 @@ class BaseCOOLToCILVisitor:
         param1 = self.register_param(VariableInfo('param1',self.context.get_type('Int')))
         result = self.define_internal_local()
         self.register_instruction(cil.GetAttribCilNode(param1,'Int','value',result))
-        self.register_instruction(cil.PrintIntCilNode(param_self,result))
+        self.register_instruction(cil.PrintIntCilNode(result))
         self.register_instruction(cil.ReturnCilNode(param_self))
 
         #function in_string
@@ -276,6 +269,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         instance = self.define_internal_local(scope)
         result = self.define_internal_local(scope)
         self.register_instruction(cil.AllocateCilNode('Main', instance))
+        self.register_instruction(cil.StaticCallCilNode('Main','init_Main',[instance],instance))
         self.register_instruction(cil.StaticCallCilNode('Main','main',[instance], result))
         self.register_instruction(cil.ReturnCilNode(0))
 
@@ -306,7 +300,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         #Register Init_Class Function
         self.current_function = self.register_function(f'init_{self.current_type.name}')
         self_param = self.register_param(VariableInfo('self',self.current_type.name))
-        # self.register_instruction(cil.LabelCilNode(f'Init_{self.current_type.name}:'))
         # self.register_instruction(cil.AllocateCilNode(self.current_type.name,instance_dir))
         self.current_type_dir = self_param
 
@@ -367,9 +360,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             if node.type == 'Int':
                 # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'0'))
                 int_internal = self.define_internal_local()
+                result_location = self.define_internal_local()
                 result = self.define_internal_local()
+
                 self.register_instruction(cil.IntCilNode(0,int_internal))
-                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[int_internal],result))
+                self.register_instruction(cil.AllocateCilNode('Int',result_location))
+                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result))
                 self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.name,result))
             elif node.type == 'String':
                 # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,""))
@@ -389,11 +385,13 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         returnVal = self.define_internal_local()
         int_internal = self.define_internal_local()
+        result_location = self.define_internal_local()
         # self.register_instruction(cil.AllocateCilNode('Int',returnVal))
+        self.register_instruction(cil.AllocateCilNode('Int',result_location))
         self.register_instruction(cil.IntCilNode(int(node.lex),int_internal))
-        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[int_internal],returnVal))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],returnVal))
         # self.register_instruction(cil.SetAttribCilNode(returnVal,'Int','value',node.lex)) 
-        return returnVal
+        return result_location
 
     @visitor.when(StringNode) #7.1 Constant
     def visit(self, node,scope):
@@ -463,12 +461,13 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
 
         if node.call_type == 2:
             # self_instance = self.define_internal_local()
+            arg_list.insert(0,'self')
             self.register_instruction(cil.StaticCallCilNode(self.current_type.name,node.id,arg_list,result))
         else:
             expresion = self.visit(node.obj,scope)
             # arg_list.append(expresion)
             if node.call_type == 1:
-                self.register_instruction(cil.DynamicCallCilNode(expresion,node.obj.computed_type.name,node.id,arg_list,result))
+                self.register_instruction(cil.DynamicCallCilNode(expresion,node.obj.computed_type.name,node.id,[expresion]+arg_list,result))
             else:
                 self.register_instruction(cil.DynamicCallCilNode(expresion,node.parent,node.id,arg_list,result))
 
@@ -633,12 +632,15 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         dest = self.define_internal_local()
         result = self.define_internal_local()
+        result_fun = self.define_internal_local()
+
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
         # self.register_instruction(cil.GetAttribCilNode(left,'Int','value',left))
         # self.register_instruction(cil.GetAttribCilNode(right,'Int','value',right))
+        self.register_instruction(cil.AllocateCilNode('Int',result))
         self.register_instruction(cil.PlusCilNode(dest,left,right))
-        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[dest],result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result_fun))
         return result
 
     @visitor.when(MinusNode)

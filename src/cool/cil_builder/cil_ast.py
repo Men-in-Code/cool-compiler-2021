@@ -236,8 +236,7 @@ class ReadCilNode(InstructionCilNode):
         self.dest = dest
 
 class PrintCilNode(InstructionCilNode):
-    def __init__(self,self_param,to_print):
-        self.self_param = self_param
+    def __init__(self,to_print):
         self.to_print = to_print
 class AbortCilNode(InstructionCilNode):
     pass
