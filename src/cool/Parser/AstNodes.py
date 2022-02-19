@@ -112,12 +112,13 @@ class AssignNode(ExpressionNode):
         self.column = column
 
 class CallNode(ExpressionNode):
-    def __init__(self, obj, idx, args, parent, row = 0, column = 0):
+    def __init__(self, obj, idx, args, parent,call_type, row = 0, column = 0):
         self.obj = obj
         self.id = idx
         self.args = args
         self.parent = parent
         self.place_holder = None
+        self.call_type = call_type
         self.row = row
         self.column = column
 

@@ -1,4 +1,3 @@
-from pandas import offsets
 from cool.cil_builder.cil_ast import * 
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
@@ -26,6 +25,7 @@ class BaseCILToMIPSVisitor:
         self.type_offset = {}
         self.attribute_offset = {}
         self.method_offset = {}
+        self.method_original = {}
         self.var_offset = {}
         self.type_size = {} #quantity of attr. of that type
         self.errors = {
@@ -57,8 +57,40 @@ class BaseCILToMIPSVisitor:
     case_branch_error: .asciiz "Runtime Error 3: Execution of a case statement without a matching branch."
     zero_division: .asciiz "Runtime Error 4: Division by zero"
     substring_out_of_range: .asciiz "Runtime Error 5: Substring out of range."
-    heap_overflow: .asciiz "Runtime Error 6: Heap overflow"\n
+    heap_overflow: .asciiz "Runtime Error 6: Heap overflow"
 '''
+    def fill_dottext_with_errors(self):
+        self.text_section+= '\n\n'
+        self.text_section+= 'error_call_void:\n' #dispatch error 1
+        self.text_section+= 'la $a0,call_void_error\n'
+        self.text_section+= 'j print_error\n'
+
+        self.text_section+= 'error_expr_void:\n' #case error 2
+        self.text_section+= 'la $a0,case_void_expr\n'
+        self.text_section+= 'j print_error\n'
+        
+        self.text_section+= 'error_branch:\n' #branch error 3
+        self.text_section+= 'la $a0,case_branch_error\n'
+        self.text_section+= 'j print_error\n'
+
+        self.text_section+= 'error_div_by_zero:\n' #division by zero error 4
+        self.text_section+= 'la $a0,zero_division\n'
+        self.text_section+= 'j print_error\n'
+
+        self.text_section+= 'error_substring:\n' #substring out of range
+        self.text_section+= 'la $a0,substring_out_of_range\n'
+        self.text_section+= 'j print_error\n'
+
+        self.text_section+= 'error_heap:\n'
+        self.text_section+= 'la $a0,heap_overflow\n'
+
+
+        self.text_section+= 'print_error:\n'
+        self.text_section+= 'li $v0, 4\n'
+        self.text_section+= 'syscall\n'
+        self.text_section+= 'j end\n'
+
+
 
 
 class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
@@ -79,8 +111,14 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.dotdata = node.dotdata
         self.fill_dotdata_with_errors()
 
-        self.text_section+= 'j function_main_at_Main\n'
+        self.text_section+= 'jal entry\n'
 
+        self.text_section+=f'\n'
+        self.text_section+=f'end:\n' 
+        self.text_section+=f'li, $v0, 10\n'
+        self.text_section+=f'syscall\n'
+
+        self.fill_dottext_with_errors()
 
         self.data_section+= '#TYPES\n'
         for type in self.dottypes:
@@ -90,11 +128,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         for code in self.dotcode:
             self.visit(code)
 
-
-        self.text_section+=f'\n'
-        self.text_section+=f'end:\n' 
-        self.text_section+=f'li, $v0, 10\n'
-        self.text_section+=f'syscall\n'
         return self.data_section+self.text_section
 
     @visitor.when(TypeCilNode)
@@ -102,15 +135,16 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # self.text_section += '\n'
 
         self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
-        self.data_section+= f'type_{node.name}_methods:\n'
+        self.data_section+= f'{node.name}_methods:\n'
 
         for i,attr in enumerate(node.attributes):
-            self.attribute_offset[node.name,attr] = 4*i
+            self.attribute_offset[node.name,attr] = 4*(i+1)
         self.type_size[node.name] = len(node.attributes)
 
         for i,method in enumerate(node.methods):
             self.data_section+= f'.word {method[1]}\n'
-            self.method_offset[node.name,method] = 4*i
+            self.method_offset[node.name,method[1]] = 4*i
+            self.method_original[node.name,method[0]] = method[1]
 
         self.data_section+= '\n'
       
@@ -127,16 +161,25 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         #     node.instructions = instructions
         #############################################3
         self.current_function = node
-        for i,var in enumerate(node.params + node.localvars):
-            self.var_offset[self.current_function.name,var.name] = 4*i
+        for i,var in enumerate(node.localvars+node.params):
+            self.var_offset[self.current_function.name,var.name] = 4*(i+1)
 
         self.text_section += '\n'
         self.text_section += f'{node.name}:\n'
-        self.text_section += f'addi, $sp, $sp, {-4*len(node.params + node.localvars)}\n'#get space for vars
+        self.text_section += f'addi, $sp, $sp, {-4*(len(node.localvars)+1)}\n'#get space for vars and return adress
         ## ojo faltaria ver que hago con el retorno
+        self.text_section += 'sw $ra, ($sp)\n'
 
         for inst in node.instructions:
             self.visit(inst)
+
+        self.text_section+= 'lw $ra, ($sp)\n'
+        self.text_section+= f'addi $sp, $sp,{4*(len(node.localvars)+1)}\n'
+        self.text_section+= 'jr $ra\n'
+
+        
+
+        
 
 
     # class ParamCilNode(CilNode):
@@ -184,19 +227,32 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.result = result
         ########################################################################
         arg_amount = (len(node.args)+1)*4
-        self.text_section+= f'move $t0 $sp\n'
-        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
-        self.text_section+= f'sw $ra, ($sp)\n'
 
+
+        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
+        # self.text_section+= f'sw $ra, ($sp)\n'
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
             self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
             self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
 
-        self.text_section+= f'jal {node.method_name}\n'
+        if node.method_name[:4] == 'init':
+            self.text_section+= f'jal {node.method_name}\n'
+        else:
+            function_offset = self.method_original[node.type,node.method_name]
+            # self.text_section+= f'lw $s1, 4($sp)\n' #instance location
+            # self.text_section+= f'la $s2, {function_offset}($s1)\n' #$s2 method name
+
+            # self.text_section+= f'jalr $s2\n'
+            self.text_section+= f'jal {function_offset}\n'
+
+        self.text_section+= f'addi, $sp, $sp, {arg_amount}\n'
 
         result_offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += f'sw $s0, {result_offset}($sp)\n'
+
+        # self.text_section+= 'jr $ra\n'
 
 
     @visitor.when(DynamicCallCilNode) #7.4 Dispatch Dynamic
@@ -210,8 +266,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         ########################################################################
         arg_amount = (len(node.args)+1)*4
         self.text_section+= f'move $t0 $sp\n'
-        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
-        self.text_section+= f'sw $ra, ($sp)\n'
+        self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
+        # self.text_section+= f'sw $ra, ($sp)\n'
 
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
@@ -220,17 +276,21 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
-        self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO
+        self.text_section += f'lw $a0, {expresion_offset}($t0)\n' #OJO
         #El tipo dinamico se consigue a partir de expresion offset
-        self.text_section += 'la $t0, void\n'
-        self.text_section += 'beq $v0, $t0, call_void_expr\n'
+        self.text_section += 'la $t1, call_void_error\n'
+        self.text_section += 'beq $a0, $t1, call_void_error\n'
         
 
+        #Selecting Function
+        self.text_section += f'lw $a1, ($a0)\n'
+        original_fun = self.method_original[node.static_type,node.method_name]
+        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1)\n'
+        self.text_section += 'jalr $a2\n'
 
-        self.text_section += f'la $v1, ($v0)'
-        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($v1)'
-        self.text_section += 'jalr $v2\n'
 
+        #Restoring SP and returning
+        self.text_section+= f'addi, $sp, $sp, {arg_amount}\n'
         result_offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
@@ -260,11 +320,11 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
         self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO puede que no se haga la operacion asi
         #El tipo dinamico se consigue a partir de expresion offset
-        self.text_section += 'la $t0, void\n'
-        self.text_section += 'beq $v0, $t0, call_void_expr\n'
+        self.text_section += 'la $t1, call_void_error\n'
+        self.text_section += 'beq $v0, $t1, call_void_error\n'
         
-        self.text_section += f'la $v1, {node.static_type}_methods'
-        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($vi)'
+        self.text_section += f'la $v1, {node.static_type}_methods\n'
+        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($vi)\n'
         self.text_section += 'jalr $v2\n'
 
         result_offset = self.var_offset[self.current_function.name,node.result]
@@ -282,8 +342,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.expr_list = expr_list
     #         self.label = label_list
 
-    # class InstantiateCilNode(InstructionCilNode): #7.10 New
-    #     pass
+    # @visitor.when(InstantiateCilNode)
+    # def visit(self,node):
+
 
     # class IsVoidCilNode(InstructionCilNode): #7.11 IsVoid
     #     def __init__(self, expresion, result):
@@ -300,15 +361,18 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,-4($t0)'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,-4($t3)\n'
 
-        self.text_section+= f'lw, $t0, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,-4($t0)'
 
-        self.text_section+= f'add, $t0,$t1,$t2\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,-4($t3)\n'
 
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
+
+
+        self.text_section+= f'add, $t3,$t1,$t2\n' #resultado de la suma
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
         
         
     @visitor.when(MinusCilNode)
@@ -363,8 +427,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         # (instance_offset+attr_offset)
         self.text_section += '\n'
-        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'lw, $t1, -{attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'lw, $t1, -{attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo
         self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
 
     @visitor.when(SetAttribCilNode)
@@ -381,8 +445,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         value_offset = self.var_offset[self.current_function.name,node.value]
         self.text_section += '\n'
         self.text_section+= f'lw, $t1, {value_offset}($sp)   \n' #Guardo el valor 
-        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'sw, $t1, -{attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
+        self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'sw, $t1, -{attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
 
 
     @visitor.when(SetDefaultCilNode)
@@ -406,8 +470,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # self.text_section+= f'lw, $t1, {value}   \n' #Guardo el valor 
         self.text_section+= value
         self.text_section += '\n'
-        self.text_section+= f'lw, $t0, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'sw, $t1, {attr_offset}($t0)   \n' #Cargar en un registro el valor del atributo
+        self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
+        self.text_section+= f'sw, $t1, {attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo
 
     @visitor.when(AllocateCilNode)
     def visit(self, node):
@@ -422,12 +486,12 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'addi $a0, $zero, {type_size}\n' #ojo pudiera faltar un +4
         self.text_section += 'li, $v0, 9\n'
         self.text_section += 'syscall\n'
-        self.text_section += 'blt, $sp, $v0,heap_overflow\n'
-        self.text_section += 'move, $t0, $v0\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n'
 
-        self.text_section += f'la $t1,{node.type}_methods '#recupero el addr del tipo
-        self.text += 'sw $t1, ($t0)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
-        self.text_section += f'sw, $t0, {result_offset}($sp)\n'
+        self.text_section += f'la $t1,{node.type}_methods\n'#recupero el addr del tipo
+        self.text_section += 'sw $t1, ($t3)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
+        self.text_section += f'sw, $t3, {result_offset}($sp)\n'
 
 
     @visitor.when(ReturnCilNode)
@@ -441,7 +505,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
             self.text_section += f'lw $s0, {offset}($sp)\n'
         else:
             self.text_section += f'move $a1, $zero\n'
-        pass
 
 #Function Mips Implementattion
     @visitor.when(PrintStringCilNode)
@@ -454,7 +517,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section += '\n'
         self.text_section+= f'li, $v0, 4\n'
-        self.text_section+= f'la, $a0, {str_offset}($sp)\n'
+        self.text_section+= f'lw, $a0, {str_offset}($sp)\n'
         self.text_section+= f'syscall\n'
 
     @visitor.when (PrintIntCilNode)
@@ -466,7 +529,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         str_offset = self.var_offset[self.current_function.name,node.to_print]
         self.text_section += '\n'
         self.text_section+= f'li, $v0, 1\n'
-        self.text_section+= f'la, $a0, {str_offset}($sp)\n'
+        self.text_section+= f'lw, $a0, {str_offset}($sp)\n'
         self.text_section+= f'syscall\n'
 
 
@@ -479,21 +542,21 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.when (LabelCilNode)
     def visit(self, node):
         # self.label = label
-        self.text_section += f' {node.label}:'
+        self.text_section += f' {node.label}:\n'
         
 
     @visitor.when (GotoCilNode)
     def visit(self, node):
         # self.label = label
-        self.text_section += f'j {node.label}'
+        self.text_section += f'j {node.label}\n'
 
     @visitor.when (GotoIfCilNode)
     def visit(self, node):
     #         self.val = val
     #         self.label = label
         offset = self.var_offset[self.current_function,node.val]
-        self.text_section += f'lw t0, {offset}($sp)'
-        self.text_section += f'lw t1, 4(t0)'
+        self.text_section += f'lw t0, {offset}($sp)\n'
+        self.text_section += f'lw t1, 4(t0)\n'
 
 
     # class ArgCilNode(InstructionCilNode):
@@ -514,16 +577,22 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         #     node.result = result
         offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += '\n'
-        self.text_section += f'lw, $t0, {offset}($sp)\n'
         self.text_section += f'addi, $t1, $zero, {node.value}\n'
-        self.text_section += f'sw, $t1, 4($t0)\n'
+        self.text_section += f'sw, $t1, {offset}($sp)\n'
 
 
+    @visitor.when(StringCilNode)
+    def visit(self, node):   
+        ###############################
+        #     node.value = value
+        #     node.result = result
+        ###############################
+        offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += '\n'
+        self.text_section += f'la, $t1, {node.value}\n'
+        self.text_section += f'sw, $t1, {offset}($sp)\n'
 
-    # class StringCilNode(InstructionCilNode):
-    #     def __init__(self,value,result):
-    #         self.value = value
-    #         self.result = result
+
 
     # #Function CilNodes 
     # class ToStrCilNode(InstructionCilNode):

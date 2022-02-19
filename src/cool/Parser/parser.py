@@ -264,11 +264,11 @@ class Parser():
                   | ID OPAR arg_list_call CPAR
                   | factor ARROBA TYPE DOT ID OPAR arg_list_call CPAR'''
         if p[2] == '.':
-            p[0] = CallNode(p[1], p[3], p[5], None, p.lineno(2), p.slice[2].column)
+            p[0] = CallNode(p[1], p[3], p[5], None,1, p.lineno(2), p.slice[2].column)
         elif p[2] == '(':
-            p[0] = CallNode(None, p[1], p[3], None, p.lineno(1), p.slice[1].column)
+            p[0] = CallNode(None, p[1], p[3], None,2, p.lineno(1), p.slice[1].column)
         elif p[2] == '@': 
-            p[0] = CallNode(p[1], p[5], p[7], p[3], p.lineno(3), p.slice[3].column)
+            p[0] = CallNode(p[1], p[5], p[7], p[3],3, p.lineno(3), p.slice[3].column)
 
     def p_arg_list_call(self,p):
         '''arg_list_call : arg_list

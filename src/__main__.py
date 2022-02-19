@@ -4,7 +4,7 @@ from cool.lexer.lexer import Lexer, main
 from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
 from cool.semantic.semanticAnalizer import run_semantic_pipeline
-# from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
+from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
 
 import os.path
 from pathlib import Path
@@ -21,28 +21,26 @@ if __name__ == '__main__':
     with open(_in) as file:
         text = file.read()
 
-#     text = '''
-
-# class B inherits A {
-#     c : SELF_TYPE ;
-# };
-
-
-# class A inherits IO {
-#     a : Int ;
-#     suma ( a : Int , b : Int ) : Int 
-#     {
-#         {
-#             while 4 = 4 loop a + b pool;
-#             1;
-#         }
-#     };
-#     b : Int ;
-# };
-
-# class Main inherits IO {
-#   main(): IO { out_string("Hello World")};
-# };'''
+    text = ''' 
+    class B inherits A 
+    {
+        suma():Int{
+            x
+            };
+     } ;
+    class Main inherits IO {
+    suma(a:Int,b:Int):Int{
+        b + a
+    };
+   main(): IO { out_int((new A).f() ) };
+    };
+    class A {
+        x:Int<-100;
+        f():Int{
+            x
+        };
+     };
+'''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
     tokens = lexer.tokenize()
@@ -64,6 +62,6 @@ if __name__ == '__main__':
         raise Exception()
 
     context,scope = run_semantic_pipeline(ast)
-    # mips_output = run_code_gen_pipeline(ast,context,scope)
+    mips_output = run_code_gen_pipeline(ast,context,scope)
     # mips_output = run_mips_gen_pipeline(cil_ast,context,scope)
 
