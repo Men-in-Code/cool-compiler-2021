@@ -128,6 +128,8 @@ class BaseCOOLToCILVisitor:
             cilType.methods = [(m,self.to_function_name(m,t.name)) for m in t.methods]
             if cilType.name in ['Int','String','Bool']:
                 cilType.attributes.append('value')
+                if cilType.name == 'String':
+                    cilType.attributes.append('len')
 
 
         #=============================Object=========================================
@@ -174,10 +176,12 @@ class BaseCOOLToCILVisitor:
         #init_String
         self.current_function = self.register_function('init_String')
         self_param = self.register_param(VariableInfo('self',self.current_type.name))
-        param1 = self.register_param(VariableInfo('value',self.current_type.name))
-        result = self.define_internal_local()
-        self.register_instruction(cil.SetAttribCilNode(result,'String','value',param1))
-        self.register_instruction(cil.ReturnCilNode(result))
+        param1_data = self.register_param(VariableInfo('value',self.current_type.name))
+        param2_len = self.register_param(VariableInfo('len',self.current_type.name))
+
+        self.register_instruction(cil.SetAttribCilNode(self_param,'String','value',param1_data))
+        self.register_instruction(cil.SetAttribCilNode(self_param,'String','len',param2_len))
+        self.register_instruction(cil.ReturnCilNode(self_param))
 
         #function length
         self.current_function = self.register_function(self.to_function_name('length',self.current_type.name))
@@ -249,6 +253,9 @@ class BaseCOOLToCILVisitor:
         result = self.define_internal_local()
         self.register_instruction(cil.ReadIntCilNode(param_self,param1,result))
         self.register_instruction(cil.ReturnCilNode(result))
+
+        #Funciones auxiliares
+
 
         self.current_type = None
         self.current_function = None
@@ -386,11 +393,11 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         returnVal = self.define_internal_local()
         int_internal = self.define_internal_local()
         result_location = self.define_internal_local()
-        # self.register_instruction(cil.AllocateCilNode('Int',returnVal))
+
         self.register_instruction(cil.AllocateCilNode('Int',result_location))
         self.register_instruction(cil.IntCilNode(int(node.lex),int_internal))
         self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],returnVal))
-        # self.register_instruction(cil.SetAttribCilNode(returnVal,'Int','value',node.lex)) 
+
         return result_location
 
     @visitor.when(StringNode) #7.1 Constant
@@ -399,11 +406,22 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
     # node.lex -> str
     ###############################
         returnVal = self.define_internal_local()
-        string_internal = self.define_internal_local()
+        result_location = self.define_internal_local()
+
+        data_location = self.define_internal_local()
+        length_str = self.define_internal_local()
+
         data_name = self.register_data(node.lex)
-        self.register_instruction(cil.StringCilNode(data_name.name,string_internal)) 
-        self.register_instruction(cil.StaticCallCilNode('String','init_String',[string_internal],returnVal))
-        return returnVal
+        self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
+        self.register_instruction(cil.GetDataCilNode(data_name.name,data_location)) #Paso al sp en una local interna el data
+
+        self.register_instruction(cil.StaticCallCilNode('String','length',[data_location],length_str)) #Call a length usando lo que cargue de data como selfy dejando el resultado en lenght_str
+
+        # self.register_instruction(cil,cil.AllocateBySizeCilNode(length_str,stringVal_in_heap_location)) #Hago allocate de len(data) y en stringVal_in_heap_location dejo la direccion del heap que me devolvio el allocate
+        # self.register_instruction(cil.StringCilNode(data_location,stringVal_in_heap_location)) #A partir del data y la direccion del heap que hice allocate, empiezo a copiar el data para el heap
+
+        self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,length_str],returnVal)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
+        return result_location
 
     @visitor.when(VariableNode) #7.2 Identifiers
     def visit(self, node,scope):

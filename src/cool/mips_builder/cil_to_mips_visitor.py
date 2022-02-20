@@ -493,6 +493,37 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += 'sw $t1, ($t3)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
         self.text_section += f'sw, $t3, {result_offset}($sp)\n'
 
+    @visitor.when(AllocateBySizeCilNode)   
+    def visit(self,node):
+        #######################################
+        # node.amount_location = amount_location
+        # node.result = result
+        #######################################
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        size_offset = self.var_offset[self.current_function.name,node.result] #mas 1 para guardar el addr del tipo
+        
+        self.text_section += '\n'
+        self.text_section += f'lw $a0,{size_offset}($sp)\n'
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n'
+
+        self.text_section += f'sw, $t3, {result_offset}($sp)\n'
+
+
+    @visitor.when(GetDataCilNode)
+    def visit(self,node):
+        #######################################
+        # node.name = name
+        # node.result = result
+        #######################################
+        self.text_section += f'\n'
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section += f'la $t1, {node.name}\n'
+        self.text_section += f'sw $t1, {result_offset}($sp)\n'
+
+
 
     @visitor.when(ReturnCilNode)
     def visit(self,node):
@@ -583,14 +614,38 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.when(StringCilNode)
     def visit(self, node):   
         ###############################
-        #     node.value = value
-        #     node.result = result
+        #     node.dir1 = dir1
+        #     node.dir2 = dir2
         ###############################
-        offset = self.var_offset[self.current_function.name,node.result]
+        dir1_offset = self.var_offset[self.current_function.name,node.dir1]
+        dir2_offset = self.var_offset[self.current_function.name,node.dir2]
         self.text_section += '\n'
-        self.text_section += f'la, $t1, {node.value}\n'
-        self.text_section += f'sw, $t1, {offset}($sp)\n'
+        self.text_section += f'lw, $t1, {dir1_offset}($sp)\n' #Cargo en t1 la direccion del string en data
+        self.text_section += f'lw, $t2, {dir2_offset}($sp)\n' #Cargo en t2 la direccion donde guardare el string en el heap
 
+        # self.text_section += 
+
+    @visitor.when(LengthCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.self_dir = self_dir
+        # node.length = length
+        #####################################  
+
+        offset_self = self.var_offset[self.current_function.name,node.self_dir]
+        offset_length = self.var_offset[self.current_function.name,node.length]
+        self.text_section += f'lw $t1, {offset_self}($sp)\n'
+
+        self.text_section += 'li $s1, 0\n' #contador de caracteres (el ultimo es 0 y no se cuenta)
+        self.text_section += 'loop_function_length:\n' 
+        self.text_section += 'lb $t2, ($t1)\n' #Cargo un caracter
+        self.text_section += 'beqz $t2, end_function_length\n' #si el caracter que cargue es 0, termino
+        self.text_section += 'addi $t1, $t1, 1\n' #sumo 1 a la direccion de donde estoy buscando el string
+        self.text_section += 'addi $s1, $s1, 1\n' #Sumo 1 al contador
+        self.text_section += 'j loop_function_length\n' #Reinicio el loop
+        self.text_section += 'end_function_length:\n' #Fin del loop
+
+        self.text_section += f'sw $s1, {offset_length}($sp)\n'  #
 
 
     # #Function CilNodes 
@@ -622,10 +677,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #     pass
     # class ReadIntCilNode(ReadCilNode):
     #     pass
-    # class LengthCilNode(InstructionCilNode):
-    #     def __init__(self, strVar, result):
-    #         self.str = strVar
-    #         self.length = result
+
+
     # class ConcatCilNode(InstructionCilNode):
     #     def __init__(self, strVal, var2,result):
     #         self.strVal = strVal

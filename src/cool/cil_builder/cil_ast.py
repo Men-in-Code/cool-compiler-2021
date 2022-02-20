@@ -175,6 +175,17 @@ class AllocateCilNode(InstructionCilNode):
         self.type = type
         self.result = result
 
+class AllocateBySizeCilNode(InstructionCilNode):
+    #Liberar espacio en memoria a partir de una cantidad que se encuentra en una direccion de memoria.
+    def __init__(self,amount_location,result):
+        self.amount_location = amount_location
+        self.result = result
+
+class GetDataCilNode(InstructionCilNode):
+    def __init__(self,name,result):
+        self.name = name
+        self.result = result
+
 class TypeOfCilNode(InstructionCilNode):
     #Dado una instancia (local internal que posee una direccion en memoria con el tipo dinamico) devolver el string correspondiente a ese tipo dinamico
     def __init__(self, instance, result):
@@ -218,10 +229,9 @@ class IntCilNode(InstructionCilNode):
         self.result = result
 
 class StringCilNode(InstructionCilNode):
-    def __init__(self,value,result):
-        #Value es un label en msg?
-        self.value = value
-        self.result = result
+    def __init__(self,dir1,dir2):
+        self.dir1 = dir1
+        self.dir2 = dir2
 
 #Function CilNodes
 class ToStrCilNode(InstructionCilNode):
@@ -257,9 +267,9 @@ class ReadStringCilNode(ReadCilNode):
 class ReadIntCilNode(ReadCilNode):
     pass
 class LengthCilNode(InstructionCilNode):
-    def __init__(self, strVar, result):
-        self.str = strVar
-        self.length = result
+    def __init__(self, self_dir, length):
+        self.self_dir = self_dir
+        self.length = length
 class ConcatCilNode(InstructionCilNode):
     def __init__(self, strVal, var2,result):
         self.strVal = strVal

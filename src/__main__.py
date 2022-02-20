@@ -23,13 +23,10 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
-        x:Int<-1;
-        f(a:Int):Int {
-            a+100
-            };
         main(): IO 
         { 
-            out_int(f(100))};
+            out_int((new A).f())
+            };
     };
     class A {
         x:Int<-100;
