@@ -90,6 +90,53 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
         self.text_section+= 'syscall\n'
         self.text_section+= 'j end\n'
 
+    def fill_dottext_with_comparison(self):
+        #Equals
+        self.text_section+= '\n'
+        self.text_section+= 'Equals_comparison:\n'
+        self.text_section+= 'beq $t1,$t2 equalsTrue\n'
+        self.text_section+= 'li $t3,0\n'
+        self.text_section+= 'j end_equals_comparison\n'
+        self.text_section+= 'equalsTrue: \n'
+        self.text_section+= 'li $t3,1\n'
+        self.text_section+= 'end_equals_comparison:\n'
+        self.text_section+= 'jr $ra\n'
+        self.text_section+= '\n'
+        #LessEqual
+        self.text_section+= '\n'
+        self.text_section+= 'LessEqual_comparison:\n'
+        self.text_section+= 'ble $t1,$t2 lessEqualTrue\n'
+        self.text_section+= 'li $t3,0\n'
+        self.text_section+= 'j end_LessEqual_comparison\n'
+        self.text_section+= 'lessEqualTrue: \n'
+        self.text_section+= 'li $t3,1\n'
+        self.text_section+= 'end_LessEqual_comparison:\n'
+        self.text_section+= 'jr $ra\n'
+        self.text_section+= '\n'
+        #Less
+        self.text_section+= '\n'
+        self.text_section+= 'Less_comparison:\n'
+        self.text_section+= 'blt $t1,$t2 lessTrue\n'
+        self.text_section+= 'li $t3,0\n'
+        self.text_section+= 'j end_less_comparison\n'
+        self.text_section+= 'lessTrue: \n'
+        self.text_section+= 'li $t3,1\n'
+        self.text_section+= 'end_less_comparison:\n'
+        self.text_section+= 'jr $ra\n'
+        self.text_section+= '\n'
+        #Is_void
+        self.text_section+= '\n'
+        self.text_section+= 'Void_comparison:\n'
+        self.text_section+= 'la $t2 void_data \n'
+        self.text_section+= 'blt $t1,$t2 VoidTrue\n'
+        self.text_section+= 'li $t3,0\n'
+        self.text_section+= 'j end_Void_comparison\n'
+        self.text_section+= 'VoidTrue: \n'
+        self.text_section+= 'li $t3,1\n'
+        self.text_section+= 'end_Void_comparison:\n'
+        self.text_section+= 'jr $ra\n'
+        self.text_section+= '\n'
+
 
 
 
@@ -119,12 +166,13 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+=f'syscall\n'
 
         self.fill_dottext_with_errors()
-
+        self.fill_dottext_with_comparison()
         self.data_section+= '\n#TYPES\n'
         for type in self.dottypes:
             self.visit(type)
         self.data_section+= '\n#DATA_STR\n'
         self.data_section+= 'empty_str_data: .asciiz ""\n'
+        self.data_section+= 'void_data: .word 0\n'
         for data in self.dotdata:
             self.visit(data)
         self.text_section+= '\n#CODE\n'
@@ -220,10 +268,19 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     # #7.2 Identifiers, not necesary cil Node
 
-    # class AssignCilNode(InstructionCilNode): # 7.3 Assignment
-    #     def __init__(self, dest, source):
-    #         self.dest = dest
-    #         self.source = source
+    @visitor.when(AssignCilNode)   # 7.3 Assignment
+    def visit(self,node): 
+        #########################################################################
+        # node.dest = dest
+        # node.source = source
+        #########################################################################
+        offset_dest =  self.var_offset[self.current_function.name,node.dest]
+        offset_source = self.var_offset[self.current_function.name,node.source]
+        self.text_section+= f'lw $t1, {offset_source}($sp)\n'
+        self.text_section+= f'sw $t1, {offset_dest}($sp)\n'
+
+        
+
 
     @visitor.when(StaticCallCilNode) #7.4 Distaptch Static
     def visit(self,node): 
@@ -285,8 +342,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
         self.text_section += f'lw $a0, {expresion_offset}($t0)\n' #Carga el data
         #El tipo dinamico se consigue a partir de expresion offset
-        self.text_section += 'la $t1, call_void_error\n'
-        self.text_section += 'beq $a0, $t1, call_void_error\n'
+        self.text_section += 'la $t1, void_data\n'
+        self.text_section += 'beq $a0, $t1, error_call_void\n'
         
 
         #Selecting Function
@@ -327,8 +384,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
         self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO puede que no se haga la operacion asi
         #El tipo dinamico se consigue a partir de expresion offset
-        self.text_section += 'la $t1, call_void_error\n'
-        self.text_section += 'beq $v0, $t1, call_void_error\n'
+        self.text_section += 'la $t1, void_data\n'
+        self.text_section += 'beq $v0, $t1, error_call_void\n'
         
         self.text_section += f'la $v1, {node.static_type}_methods\n'
         self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($vi)\n'
@@ -363,61 +420,190 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #Binary Aritmetic Operations
     @visitor.when(PlusCilNode)
     def visit(self, node):   
+        ######################################
+        # node.dest = dest
+        # node.left = left
+        # node.right = right
+        ######################################
         offset_right = self.var_offset[self.current_function.name,node.right]
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
-
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
         self.text_section+=f'lw,$t1,4($t3)\n'
-
-
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
-
-
-
-        self.text_section+= f'add, $t3,$t1,$t2\n' #resultado de la suma
-
+        self.text_section+= f'add $t3,$t1,$t2\n' #resultado de la suma
         self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
         
         
     @visitor.when(MinusCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
     def visit(self, node):
         offset_right = self.var_offset[self.current_function.name,node.right]
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+= f'sub $t3,$t2,$t1\n' #resultado de la resta
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
 
-        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'sub, $t0,$t1,$t0\n'
-
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
     @visitor.when(StarCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
     def visit(self, node):
         offset_right = self.var_offset[self.current_function.name,node.right]
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
-
-        self.text_section+= f'lw, $t0, {offset_right}($sp)\n' 
-        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'mul, $t0,$t1,$t0\n'
-
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+= f'mul $t3,$t1,$t2\n' #Operacion mul
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
 
     @visitor.when(DivCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
     def visit(self, node):
         offset_right = self.var_offset[self.current_function.name,node.right]
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
-        self.text_section += 'beq,$t1,$zero, zero_division' #ojo falta poner la etiqueta q me lleve a la funcion donde se da el error
-        self.text_section+= f'lw, $t0, {offset_right}($sp)\n'
-        self.text_section+= f'lw, $t1, {offset_left}($sp)\n'
-        self.text_section+= f'div, $t0,$t1,$t0\n'
-        self.text_section+=f'sw, $t0, {offset_dest}($sp)\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+
+        self.text_section+= f'beqz $t1 error_div_by_zero\n'
+
+        self.text_section+= f'div $t3,$t2,$t1\n' #Operacion div
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(EqualCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+
+        self.text_section+= f'jal Equals_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(LessEqualCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+
+        self.text_section+= f'jal LessEqual_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(LessCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+
+        self.text_section+= f'jal Less_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+
+
+    @visitor.when(IsVoidCilNode)
+    ######################################
+    # node.dest = dest
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'move,$t1,$t3\n'
+
+        self.text_section+= f'jal Void_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(NotCilNode)
+    ######################################
+    # node.dest = dest
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+
+        self.text_section+= f'xor $t3,$t1,1\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(NegateCilNode)
+    ######################################
+    # node.dest = dest
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+
+        self.text_section+= f'neg $t3,$t1\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
 
 
     @visitor.when(GetAttribCilNode)
@@ -539,10 +725,10 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         ###########################################
         self.text_section += '\n'
         if node.value:
-            offset = self.var_offset[self.current_function.name,node.value]
-            self.text_section += f'lw $s0, {offset}($sp)\n'
+            offset_value = self.var_offset[self.current_function.name,node.value]
+            self.text_section += f'lw $s0, {offset_value}($sp)\n'
         else:
-            self.text_section += f'move $a1, $zero\n'
+            self.text_section += f'move $s0, $zero\n'
 
 #Function Mips Implementattion
     @visitor.when(PrintStringCilNode)
@@ -578,8 +764,10 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.dest = dest
     @visitor.when (LabelCilNode)
     def visit(self, node):
+        ###########################################
         # self.label = label
-        self.text_section += f' {node.label}:\n'
+        ###########################################
+        self.text_section += f'{node.label}:\n'
         
 
     @visitor.when (GotoCilNode)
@@ -589,33 +777,35 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     @visitor.when (GotoIfCilNode)
     def visit(self, node):
-    #         self.val = val
-    #         self.label = label
-        offset = self.var_offset[self.current_function,node.val]
-        self.text_section += f'lw t0, {offset}($sp)\n'
-        self.text_section += f'lw t1, 4(t0)\n'
+        ###########################################
+        #node.val_dir = val_dir
+        #node.label = label
+        ###########################################
+        offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
+        self.text_section += f'lw $t0, {offset_val_dir}($sp) #If Label\n' #Carga el bool
+        self.text_section += f'lw $t0, 4($t0)\n' #Carga el valor del bool
+        self.text_section += f'beq $t0, 1 {node.label}\n'
 
-
-    # class ArgCilNode(InstructionCilNode):
-    #     def __init__(self, name):
-    #         self.name = name
-
-    # class LoadCilNode(InstructionCilNode):
-    #     def __init__(self, dest, msg):
-    #         self.dest = dest
-    #         self.msg = msg
-
-
+    @visitor.when (NotGotoIfCilNode)
+    def visit(self, node):
+        ###########################################
+        #node.val_dir = val_dir
+        #node.label = label
+        ###########################################
+        offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
+        self.text_section += f'lw $t0, {offset_val_dir}($sp) #If Label\n' #Carga el bool
+        self.text_section += f'lw $t0, 4($t0)\n' #Carga el valor del bool
+        self.text_section += f'beqz $t0 {node.label}\n'
 
     #TypesCilNodes falta bool ojo
     @visitor.when(IntCilNode)
     def visit(self, node):   
         #     node.value = value
         #     node.result = result
-        offset = self.var_offset[self.current_function.name,node.result]
+        offset_value = self.var_offset[self.current_function.name,node.result]
         self.text_section += '\n'
         self.text_section += f'addi, $t1, $zero, {node.value}\n'
-        self.text_section += f'sw, $t1, {offset}($sp)\n'
+        self.text_section += f'sw, $t1, {offset_value}($sp)\n'
 
 
     @visitor.when(StringCilNode)
@@ -656,16 +846,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
     # #Function CilNodes 
-    # class ToStrCilNode(InstructionCilNode):
-    #     def __init__(self, dest, ivalue):
-    #         self.dest = dest
-    #         self.ivalue = ivalue
 
-    # class ReadCilNode(InstructionCilNode):
-    #     def __init__(self,self_param,input_var,dest):
-    #         self.self_param = self_param
-    #         self.input_var = input_var
-    #         self.dest = dest
 
     @visitor.when(AbortCilNode)
     def visit(self, node):
@@ -727,17 +908,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section += f'end_loop_copy:\n'
         self.text_section += f'sw $t4, {result_offset}($sp)\n'
-
-
-
-    # class TypeNameCilNode(InstructionCilNode):
-    #     def __init__(self, type, result):
-    #         self.type = type
-    #         self.result = result
-    # class CopyCilNode(InstructionCilNode):
-    #     def __init__(self, type, result):
-    #         self.type = type
-    #         self.result = result
     
   
         

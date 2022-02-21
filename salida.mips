@@ -71,16 +71,22 @@ Main_methods:
 
 type_A: .asciiz "A"
 A_methods:
-.word 12
+.word 8
 .word type_A
 .word function_abort_at_Object
 .word function_type_name_at_Object
 .word function_copy_at_Object
-.word function_f_at_A
+.word function_out_string_at_IO
+.word function_out_int_at_IO
+.word function_in_string_at_IO
+.word function_in_int_at_IO
+.word function_main_at_Main
+.word function_elpepe_at_A
 
 
 #DATA_STR
 empty_str_data: .asciiz ""
+void_data: .word 0
 .text
 jal entry
 
@@ -111,6 +117,47 @@ li $v0, 4
 syscall
 j end
 
+Equals_comparison:
+beq $t1,$t2 equalsTrue
+li $t3,0
+j end_equals_comparison
+equalsTrue: 
+li $t3,1
+end_equals_comparison:
+jr $ra
+
+
+LessEqual_comparison:
+ble $t1,$t2 lessEqualTrue
+li $t3,0
+j end_LessEqual_comparison
+lessEqualTrue: 
+li $t3,1
+end_LessEqual_comparison:
+jr $ra
+
+
+Less_comparison:
+blt $t1,$t2 lessTrue
+li $t3,0
+j end_less_comparison
+lessTrue: 
+li $t3,1
+end_less_comparison:
+jr $ra
+
+
+Void_comparison:
+la $t2 void_data 
+blt $t1,$t2 VoidTrue
+li $t3,0
+j end_Void_comparison
+VoidTrue: 
+li $t3,1
+end_Void_comparison:
+jr $ra
+
+
 #CODE
 
 entry:
@@ -140,7 +187,7 @@ jal function_main_at_Main
 addi, $sp, $sp, 4
 sw $s0, 8($sp) #Saving result on local__internal_1
 
-move $a1, $zero
+move $s0, $zero
 lw $ra, ($sp)
 addi $sp, $sp,12
 jr $ra
@@ -159,7 +206,7 @@ addi, $sp, $sp, -4
 sw $ra, ($sp)
 j end
 
-move $a1, $zero
+move $s0, $zero
 lw $ra, ($sp)
 addi $sp, $sp,4
 jr $ra
@@ -529,40 +576,35 @@ li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
 move, $t3, $v0
-la $t1,Bool_methods
+la $t1,A_methods
 sw $t1, ($t3)
-sw, $t3, 16($sp)
-
-addi, $t1, $zero, 1
-sw, $t1, 12($sp)
-move $t0 $sp #call to function init_Bool
-addi, $sp, $sp, -8
-lw, $s0, 16($t0) #loading param_local_main_at_Main_internal_3
-sw, $s0 0($sp) #setting param for function call
+sw, $t3, 12($sp)
+move $t0 $sp #call to function init_A
+addi, $sp, $sp, -4
 lw, $s0, 12($t0) #loading param_local_main_at_Main_internal_2
-sw, $s0 4($sp) #setting param for function call
-jal init_Bool
-addi, $sp, $sp, 8
+sw, $s0 0($sp) #setting param for function call
+jal init_A
+addi, $sp, $sp, 4
 sw $s0, 16($sp) #Saving result on local_main_at_Main_internal_3
 move $t0 $sp
 addi, $sp, $sp, -4
-lw, $s0, 16($t0)
+lw, $s0, 12($t0)
 sw, $s0 0($sp)
-lw $a0, 16($t0)
-la $t1, call_void_error
-beq $a0, $t1, call_void_error
+lw $a0, 12($t0)
+la $t1, void_data
+beq $a0, $t1, error_call_void
 lw $a1, ($a0)
-lw $a2, 12($a1)
+lw $a2, 40($a1)
 jalr $a2
 addi, $sp, $sp, 4
 sw $s0, 8($sp)
-move $t0 $sp #call to function out_string
+move $t0 $sp #call to function out_int
 addi, $sp, $sp, -8
 lw, $s0, 20($t0) #loading param_self
 sw, $s0 0($sp) #setting param for function call
 lw, $s0, 8($t0) #loading param_local_main_at_Main_internal_1
 sw, $s0 4($sp) #setting param for function call
-jal function_out_string_at_IO
+jal function_out_int_at_IO
 addi, $sp, $sp, 8
 sw $s0, 4($sp) #Saving result on local_main_at_Main_internal_0
 
@@ -572,7 +614,36 @@ addi $sp, $sp,20
 jr $ra
 
 init_A:
-addi, $sp, $sp, -24
+addi, $sp, $sp, -12
+sw $ra, ($sp)
+
+addi $a0, $zero, 4
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,Main_methods
+sw $t1, ($t3)
+sw, $t3, 4($sp)
+move $t0 $sp #call to function init_Main
+addi, $sp, $sp, -4
+lw, $s0, 4($t0) #loading param_local__internal_0
+sw, $s0 0($sp) #setting param for function call
+jal init_Main
+addi, $sp, $sp, 4
+sw $s0, 8($sp) #Saving result on local__internal_1
+
+lw, $t1, 4($sp)   
+lw, $t3, 12($sp)  
+sw, $t1, 4($t3)   
+
+lw $s0, 12($sp)
+lw $ra, ($sp)
+addi $sp, $sp,12
+jr $ra
+
+function_elpepe_at_A:
+addi, $sp, $sp, -32
 sw $ra, ($sp)
 
 addi $a0, $zero, 8
@@ -582,68 +653,46 @@ blt, $sp, $v0,error_heap
 move, $t3, $v0
 la $t1,Int_methods
 sw $t1, ($t3)
-sw, $t3, 8($sp)
+sw, $t3, 12($sp)
 
-addi, $t1, $zero, 100
-sw, $t1, 4($sp)
+addi, $t1, $zero, 1
+sw, $t1, 8($sp)
 move $t0 $sp #call to function init_Int
 addi, $sp, $sp, -8
-lw, $s0, 8($t0) #loading param_local__internal_1
+lw, $s0, 12($t0) #loading param_local_elpepe_at_A_internal_2
 sw, $s0 0($sp) #setting param for function call
-lw, $s0, 4($t0) #loading param_local__internal_0
+lw, $s0, 8($t0) #loading param_local_elpepe_at_A_internal_1
 sw, $s0 4($sp) #setting param for function call
 jal init_Int
 addi, $sp, $sp, 8
-sw $s0, 8($sp) #Saving result on local__internal_1
+sw $s0, 12($sp) #Saving result on local_elpepe_at_A_internal_2
+lw $t1, 12($sp)
+sw $t1, 4($sp)
 
-lw, $t1, 8($sp)   
-lw, $t3, 24($sp)  
-sw, $t1, 4($t3)   
-
-addi $a0, $zero, 12
+addi $a0, $zero, 8
 li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
 move, $t3, $v0
-la $t1,String_methods
+la $t1,Int_methods
 sw $t1, ($t3)
-sw, $t3, 12($sp)
+sw, $t3, 24($sp)
 
-la $t1, empty_str_data
+addi, $t1, $zero, 2
+sw, $t1, 20($sp)
+move $t0 $sp #call to function init_Int
+addi, $sp, $sp, -8
+lw, $s0, 24($t0) #loading param_local_elpepe_at_A_internal_5
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 20($t0) #loading param_local_elpepe_at_A_internal_4
+sw, $s0 4($sp) #setting param for function call
+jal init_Int
+addi, $sp, $sp, 8
+sw $s0, 24($sp) #Saving result on local_elpepe_at_A_internal_5
+lw $t1, 24($sp)
 sw $t1, 16($sp)
 
-addi, $t1, $zero, 0
-sw, $t1, 20($sp)
-move $t0 $sp #call to function init_String
-addi, $sp, $sp, -12
-lw, $s0, 12($t0) #loading param_local__internal_2
-sw, $s0 0($sp) #setting param for function call
-lw, $s0, 16($t0) #loading param_local__internal_3
-sw, $s0 4($sp) #setting param for function call
-lw, $s0, 20($t0) #loading param_local__internal_4
-sw, $s0 8($sp) #setting param for function call
-jal init_String
-addi, $sp, $sp, 12
-sw $s0, 12($sp) #Saving result on local__internal_2
-
-lw, $t1, 12($sp)   
-lw, $t3, 24($sp)  
-sw, $t1, 8($t3)   
-
-lw $s0, 24($sp)
+lw $s0, 16($sp)
 lw $ra, ($sp)
-addi $sp, $sp,24
-jr $ra
-
-function_f_at_A:
-addi, $sp, $sp, -8
-sw $ra, ($sp)
-
-lw, $t3, 8($sp) #getting instance self 
-lw, $t1, 8($t3)  #getting offset y 
-sw, $t1, 4($sp)   
-
-lw $s0, 4($sp)
-lw $ra, ($sp)
-addi $sp, $sp,8
+addi $sp, $sp,32
 jr $ra

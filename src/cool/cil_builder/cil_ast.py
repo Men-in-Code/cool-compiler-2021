@@ -135,6 +135,21 @@ class StarCilNode(BinaryCilNode):
 class DivCilNode(BinaryCilNode):
     pass
 
+class EqualCilNode(BinaryCilNode):
+    pass
+class LessEqualCilNode(BinaryCilNode):
+    pass
+class LessCilNode(BinaryCilNode):
+    pass
+class IsVoidCilNode(UnaryCilNode):
+    pass
+class NotCilNode(UnaryCilNode):
+    pass
+class NegateCilNode(UnaryCilNode):
+    pass
+
+
+
 
 # Attributes operations
 class GetAttribCilNode(InstructionCilNode):
@@ -201,8 +216,12 @@ class GotoCilNode(InstructionCilNode):
         self.label = label
 
 class GotoIfCilNode(InstructionCilNode):
-    def __init__(self,val,label):
-        self.val = val
+    def __init__(self,val_dir,label):
+        self.val_dir = val_dir
+        self.label = label
+class NotGotoIfCilNode:
+    def __init__(self,val_dir,label):
+        self.val_dir = val_dir
         self.label = label
 
 class ArgCilNode(InstructionCilNode):
@@ -214,12 +233,6 @@ class ReturnCilNode(InstructionCilNode):
     #Direccion en memoria donde se guarda el resultado de la funcion
     def __init__(self, value=None):
         self.value = value
-
-class LoadCilNode(InstructionCilNode):
-    def __init__(self, dest, msg):
-        self.dest = dest
-        self.msg = msg
-
 
 
 #TypesCilNodes
@@ -308,14 +321,7 @@ class EqualsCilNode(BinaryCilNode):
     pass
 
 
-############# New Nodes ###################
-class ArgNode(CilNode):
-    def __init__(self,name):
-        self.name = name
-
-     
-
-
+############# New Nodes ###################     
 def get_formatter():
     class PrintVisitor(object):
         @visitor.on('CilNode')

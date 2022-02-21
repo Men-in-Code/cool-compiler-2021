@@ -335,7 +335,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         #Register Init_Class Function
         self.current_function = self.register_function(f'init_{self.current_type.name}')
         self_param = self.register_param(VariableInfo('self',self.current_type.name))
-        # self.register_instruction(cil.AllocateCilNode(self.current_type.name,instance_dir))
         self.current_type_dir = self_param
 
         attr_list =[attr for attr in node.features if isinstance(attr,AttrDeclarationNode)]
@@ -416,8 +415,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
                 self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,bool_internal],result_location))
                 self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
             else:
-                # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'void'))
-                pass
+                void_location = self.define_internal_local()
+                self.register_instruction(cil.GetDataCilNode('void_data',void_location))
+                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,void_location))
 
 
     @visitor.when(ConstantNumNode) #7.1 Constant
@@ -477,9 +477,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.lex -> str
         ###############################
         if scope.is_cil_defined(node.lex):
-            cool_var = scope.find_variable(node.lex)
-            self.register_local(VariableInfo(node.lex,cool_var.type))
-            return node.lex
+            cool_var = scope.find_cil_variable(node.lex)
+            self.register_local(VariableInfo(cool_var,None))
+            return cool_var
         elif f'param_{node.lex}' in [param_nodes.name for param_nodes in self.params]:
             return f'param_{node.lex}'
         # elif node.lex in self.current_type.all_attributes():
@@ -552,12 +552,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         end_label = self.create_label()
 
         self.register_instruction(cil.GotoIfCilNode(condition,then_label))
-        else_result = self.visit(node.elseexp)
+        else_result = self.visit(node.elseexp,scope)
         self.register_instruction(cil.AssignCilNode(result,else_result))
         self.register_instruction(cil.GotoCilNode(end_label))
 
         self.register_instruction(cil.LabelCilNode(then_label))
-        then_result = self.visit(node.thenexp)
+        then_result = self.visit(node.thenexp,scope)
         self.register_instruction(cil.AssignCilNode(result,then_result))
         self.register_instruction(cil.LabelCilNode(end_label))
 
@@ -569,19 +569,19 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.condition = ExpressionNode
         # node.body = ExpressionNode
         ###############################
-        result = self.define_internal_local()
+        result_while = self.define_internal_local()
         # self.register_instruction(cil.AssignCilNode())
         label_start = self.create_label()
         label_end = self.create_label()
         self.register_instruction(cil.LabelCilNode(label_start))
         if_result = self.visit(node.condition,scope)
-        self.register_instruction(cil.GotoIfCilNode(if_result,label_end))
-        body_result = self.visit(node.body,scope)
+        self.register_instruction(cil.NotGotoIfCilNode(if_result,label_end))
+        self.visit(node.body,scope)
         self.register_instruction(cil.GotoCilNode(label_start))
         self.register_instruction(cil.LabelCilNode(label_end))
 
-        # self.register_instruction(cil.returnVoidCilNode)
-        return result
+        self.register_instruction(cil.GetDataCilNode('void_data',result_while))
+        return result_while
 
 
 
@@ -603,7 +603,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         child_scope = scope.create_child()
         for let_local in node.params:
             self.visit(let_local,child_scope)
-        result = self.visit(node.body)
+        result = self.visit(node.body,child_scope)
         return result
 
     @visitor.when(LetDeclarationNode) #7.8 Let Node 
@@ -698,15 +698,13 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         dest = self.define_internal_local()
         result = self.define_internal_local()
-        result_fun = self.define_internal_local()
 
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
-        # self.register_instruction(cil.GetAttribCilNode(left,'Int','value',left))
-        # self.register_instruction(cil.GetAttribCilNode(right,'Int','value',right))
+
         self.register_instruction(cil.AllocateCilNode('Int',result))
         self.register_instruction(cil.PlusCilNode(dest,left,right))
-        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result_fun))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result))
         return result
 
     @visitor.when(MinusNode)
@@ -716,10 +714,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
+        result = self.define_internal_local()
+        result_fun = self.define_internal_local()
+
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
+        
+        self.register_instruction(cil.AllocateCilNode('Int',result))
         self.register_instruction(cil.MinusCilNode(dest,left,right))
-        return dest
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result))
+        return result
 
     @visitor.when(StarNode)
     def visit(self, node, scope):
@@ -728,10 +732,15 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
+        result = self.define_internal_local()
+
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
+        
+        self.register_instruction(cil.AllocateCilNode('Int',result))
         self.register_instruction(cil.StarCilNode(dest,left,right))
-        return dest
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result))
+        return result
 
     @visitor.when(DivNode)
     def visit(self, node, scope):
@@ -740,21 +749,115 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.right -> ExpressionNode
         ###############################
         dest = self.define_internal_local()
-        check_zero = self.define_internal_local()
-        label_zero_div = self.create_label()
-        end = self.create_label()
-        
+        result = self.define_internal_local()
+
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
-        # self.register_instruction(cil.EqualsCilNode(check_zero,0,right))
-        # self.register_instruction(cil.GotoIfCilNode(check_zero,label_zero_div))
-        self.register_instruction(cil.DivCilNode(dest,left,right))
-        # self.register_instruction(cil.GotoCilNode(end))
 
-        # self.register_instruction(cil.LabelCilNode(label_zero_div))
-        # self.register_instruction(cil.ErrorCilNode('ERROR DIVIDIR ZERO'))
-        # self.register_instruction(cil.LabelCilNode(end))
-        return dest
+        self.register_instruction(cil.DivCilNode(dest,left,right))
+        self.register_instruction(cil.AllocateCilNode('Int',result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,dest],result))
+        return result
+
+
+    @visitor.when(EqualNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.left -> ExpressionNode
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.EqualCilNode(dest,left,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+    @visitor.when(LessEqual)
+    def visit(self, node, scope):
+        ###############################
+        # node.left -> ExpressionNode
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.LessEqualCilNode(dest,left,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+    @visitor.when(LessNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.left -> ExpressionNode
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        left = self.visit(node.left,scope)
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.LessCilNode(dest,left,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+    @visitor.when(IsVoidNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.IsVoidCilNode(dest,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+    @visitor.when(NotNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.NotCilNode(dest,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+    @visitor.when(NegateNode)
+    def visit(self, node, scope):
+        ###############################
+        # node.right -> ExpressionNode
+        ###############################
+        dest = self.define_internal_local()
+        result = self.define_internal_local()
+
+        right = self.visit(node.right,scope)
+
+        self.register_instruction(cil.NegateCilNode(dest,right))
+        self.register_instruction(cil.AllocateCilNode('Bool',result))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+        return result
+
+
+
 
     @visitor.when(InstantiateNode)
     def visit(self, node, scope):

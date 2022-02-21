@@ -360,9 +360,9 @@ class Scope:
             return a
 
     def find_cil_variable(self,vname,index = None):
-        locals = self.locals if index is None else itt.islice(self.locals, index)
+        locals = self.cil_locals if index is None else itt.islice(self.cil_locals, index)
         try:
-            return next(self.cil_locals[x] for x in locals if x.name == vname)
+            return next(self.cil_locals[x] for x in locals.keys() if x == vname)
         except:
             if self.parent is not None:
                 a = self.parent.find_cil_variable(vname)

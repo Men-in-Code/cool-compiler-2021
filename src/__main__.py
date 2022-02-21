@@ -23,17 +23,22 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
-        main(): IO 
+        main(): Object
         { 
-            out_string(true.type_name())
-            };
-    };
-    class A {
-        x:Int<-100;
-        y:String;
-        f():String{
-            y
+            
+           out_int( (new A).elpepe())
         };
+    };
+    class A inherits Main {
+        y:Main<-(new Main);
+        elpepe():Int
+        {
+            let x:Int <- 1,
+            x:Int <- 2
+
+            in x
+        };
+
      };
 '''
 
