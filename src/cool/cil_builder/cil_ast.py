@@ -251,12 +251,12 @@ class PrintCilNode(InstructionCilNode):
 class AbortCilNode(InstructionCilNode):
     pass
 class TypeNameCilNode(InstructionCilNode):
-    def __init__(self, type, result):
-        self.type = type
+    def __init__(self, self_param, result):
+        self.self_param = self_param
         self.result = result
 class CopyCilNode(InstructionCilNode):
-    def __init__(self, type, result):
-        self.type = type
+    def __init__(self, self_param, result):
+        self.self_param = self_param
         self.result = result
 class PrintStringCilNode(PrintCilNode):
     pass
@@ -271,17 +271,17 @@ class LengthCilNode(InstructionCilNode):
         self.self_dir = self_dir
         self.length = length
 class ConcatCilNode(InstructionCilNode):
-    def __init__(self, strVal, var2,result):
-        self.strVal = strVal
-        self.var2 = var2
-        self.length = result
+    def __init__(self, self_param, param_1,result_addr):
+        self.self_param = self_param
+        self.param_1 = param_1
+        self.result_addr = result_addr
 
 class SubstringCilNode(InstructionCilNode):
-    def __init__(self, strVal,value1, value2,result):
-        self.strVal = strVal
+    def __init__(self, self_param,value1, value2,result):
+        self.self_param = self_param
         self.value1 = value1
         self.value2 = value2
-        self.length = result
+        self.result = result
 
 
 #Given 2 memory location calculate the distance of his types

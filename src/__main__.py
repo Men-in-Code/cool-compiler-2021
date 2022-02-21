@@ -25,13 +25,14 @@ if __name__ == '__main__':
     class Main inherits IO {
         main(): IO 
         { 
-            out_int((new A).f())
+            out_string(true.type_name())
             };
     };
     class A {
         x:Int<-100;
-        f():Int{
-            x
+        y:String;
+        f():String{
+            y
         };
      };
 '''

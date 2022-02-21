@@ -7,4 +7,6 @@ def run_code_gen_pipeline(cool_ast,context,scope):
     cil_to_mipsVisitor = CILtoMIPSVisitor(context)
     mips_text = cil_to_mipsVisitor.visit(cil_ast)
     print(mips_text)
+    with open(f'salida.mips', 'w') as f:
+        f.write(mips_text)
     return mips_text

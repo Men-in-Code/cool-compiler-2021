@@ -150,7 +150,10 @@ class BaseCOOLToCILVisitor:
         self.current_function = self.register_function(self.to_function_name('type_name',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
         result = self.define_internal_local()
-        self.register_instruction(cil.TypeNameCilNode(param_self,result))
+        adress = self.define_internal_local()
+        self.register_instruction(cil.TypeNameCilNode(param_self,adress))
+        self.register_instruction(cil.AllocateCilNode('String',result))
+        self.register_instruction(cil.StaticCallCilNode('String','init_String',[result,adress],result))
         self.register_instruction(cil.ReturnCilNode(result))
 
         #function copy
@@ -186,6 +189,17 @@ class BaseCOOLToCILVisitor:
         #function length
         self.current_function = self.register_function(self.to_function_name('length',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        len_value = self.define_internal_local()
+        result = self.define_internal_local()
+        self.register_instruction(cil.GetAttribCilNode(param_self,'String','len',len_value))
+        self.register_instruction(cil.AllocateCilNode('Int',result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,len_value],result))
+        self.register_instruction(cil.ReturnCilNode(result))
+
+        #function init_length
+        self.current_function = self.register_function('init_length')
+        # self.current_function = self.register_function(self.to_function_name('length',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
         result = self.define_internal_local()
         self.register_instruction(cil.LengthCilNode(param_self,result))
         self.register_instruction(cil.ReturnCilNode(result))
@@ -195,7 +209,12 @@ class BaseCOOLToCILVisitor:
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
         param1 = self.register_param(VariableInfo('var2',self.current_type.name))
         result = self.define_internal_local()
-        self.register_instruction(cil.ConcatCilNode(param_self,param1,result))
+        dir_concat = self.define_internal_local()
+        len_value = self.define_internal_local()
+        self.register_instruction(cil.AllocateCilNode('String',result))
+        self.register_instruction(cil.ConcatCilNode(param_self,param1,dir_concat))
+        self.register_instruction(cil.StaticCallCilNode('String','init_length',[dir_concat],len_value))
+        self.register_instruction(cil.StaticCallCilNode('String','init_String',[result,dir_concat,len_value],result))
         self.register_instruction(cil.ReturnCilNode(result))
 
         #function substr
@@ -204,22 +223,31 @@ class BaseCOOLToCILVisitor:
         param1 = self.register_param(VariableInfo('param1','Int'))
         param2 = self.register_param(VariableInfo('param2','Int'))
         result = self.define_internal_local()
-        self.register_instruction(cil.SubstringCilNode(param_self,param1,param2,result))
+        dir_subs = self.define_internal_local()
+        len_value = self.define_internal_local()
+
+        self.register_instruction(cil.AllocateCilNode('String',result))
+        self.register_instruction(cil.SubstringCilNode(param_self,param1,param2,dir_subs))
+        self.register_instruction(cil.StaticCallCilNode('String','init_length',[dir_subs],len_value))
+        self.register_instruction(cil.StaticCallCilNode('String','init_String',[result,dir_subs,len_value],result))
         self.register_instruction(cil.ReturnCilNode(result))
 
         #=========================Bool=========================================
         self.current_type = self.context.get_type('Bool')
-        #init_Bool
-        # self.current_function = self.register_function(self.to_function_name('init',self.current_type.name))
-        # param_self = self.register_param(VariableInfo('self',self.current_type.name))
-        # param1 = self.register_param(VariableInfo('value',self.current_type.name))
-        # result = self.define_internal_local()
-        # self.register_instruction(cil.AllocateCilNode(self.current_type.name,result))
-        # self.register_instruction(cil.IntCilNode(param1,result))
-        # self.register_instruction(cil.ReturnCilNode(result))
+        # init_Bool
+        self.current_function = self.register_function('init_Bool')
+        self_param = self.register_param(VariableInfo('self',self.current_type.name))
+        param1 = self.register_param(VariableInfo('value',self.current_type.name))
+        self.register_instruction(cil.SetAttribCilNode(self_param,'Bool','value', param1))
+        self.register_instruction(cil.ReturnCilNode(self_param))
 
         #=========================IO=========================================
         self.current_type = self.context.get_type('IO')
+        #init_IO
+        self.current_function = self.register_function('init_IO')
+        self_param = self.register_param(VariableInfo('self',self.current_type.name))
+        self.register_instruction(cil.ReturnCilNode(self_param))
+
         #function out_string
         self.current_function = self.register_function(self.to_function_name('out_string',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
@@ -365,21 +393,28 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
         else:
             if node.type == 'Int':
-                # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'0'))
                 int_internal = self.define_internal_local()
                 result_location = self.define_internal_local()
-                result = self.define_internal_local()
-
                 self.register_instruction(cil.IntCilNode(0,int_internal))
                 self.register_instruction(cil.AllocateCilNode('Int',result_location))
-                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result))
-                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.name,result))
+                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result_location))
+                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
             elif node.type == 'String':
-                # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,""))
-                pass
+                result_location = self.define_internal_local()
+                data_location = self.define_internal_local()
+                len_str = self.define_internal_local()
+                self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
+                self.register_instruction(cil.GetDataCilNode('empty_str_data',data_location)) #Paso al sp en una local interna el data
+                self.register_instruction(cil.IntCilNode(0,len_str))
+                self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,len_str],result_location)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
+                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
             elif node.type == 'Bool':
-                pass
-                # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'0'))
+                bool_internal = self.define_internal_local()
+                result_location = self.define_internal_local()
+                self.register_instruction(cil.IntCilNode(0,bool_internal))
+                self.register_instruction(cil.AllocateCilNode('Bool',result_location))
+                self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,bool_internal],result_location))
+                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
             else:
                 # self.register_instruction(cil.SetDefaultCilNode(class_dir,self.current_type.name,node.id,'void'))
                 pass
@@ -390,13 +425,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         # node.lex -> str
         ###############################
-        returnVal = self.define_internal_local()
         int_internal = self.define_internal_local()
         result_location = self.define_internal_local()
 
         self.register_instruction(cil.AllocateCilNode('Int',result_location))
         self.register_instruction(cil.IntCilNode(int(node.lex),int_internal))
-        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],returnVal))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result_location))
 
         return result_location
 
@@ -414,14 +448,28 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         data_name = self.register_data(node.lex)
         self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
         self.register_instruction(cil.GetDataCilNode(data_name.name,data_location)) #Paso al sp en una local interna el data
-
-        self.register_instruction(cil.StaticCallCilNode('String','length',[data_location],length_str)) #Call a length usando lo que cargue de data como selfy dejando el resultado en lenght_str
-
-        # self.register_instruction(cil,cil.AllocateBySizeCilNode(length_str,stringVal_in_heap_location)) #Hago allocate de len(data) y en stringVal_in_heap_location dejo la direccion del heap que me devolvio el allocate
-        # self.register_instruction(cil.StringCilNode(data_location,stringVal_in_heap_location)) #A partir del data y la direccion del heap que hice allocate, empiezo a copiar el data para el heap
-
+        self.register_instruction(cil.StaticCallCilNode('String','init_length',[data_location],length_str)) #Call a length usando lo que cargue de data como selfy dejando el resultado en lenght_str
         self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,length_str],returnVal)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
         return result_location
+
+    @visitor.when(BooleanNode) #7.1 Constant
+    def visit(self, node,scope):
+        ###############################
+        # node.lex -> str
+        ###############################
+        int_internal = self.define_internal_local()
+        result_location = self.define_internal_local()
+
+        self.register_instruction(cil.AllocateCilNode('Bool',result_location))
+        if node.lex == 'true':
+            self.register_instruction(cil.IntCilNode(1,int_internal))
+        elif node.lex == 'false':
+            self.register_instruction(cil.IntCilNode(0,int_internal))
+        self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,int_internal],result_location))
+
+        return result_location
+
+    
 
     @visitor.when(VariableNode) #7.2 Identifiers
     def visit(self, node,scope):
@@ -477,7 +525,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             method_arg = self.visit(a,scope)
             arg_list.append(method_arg)
 
-        if node.call_type == 2:
+        if node.call_type == 2 or (hasattr(node.obj,'lex') and node.obj.lex == 'self'):
             # self_instance = self.define_internal_local()
             arg_list.insert(0,'self')
             self.register_instruction(cil.StaticCallCilNode(self.current_type.name,node.id,arg_list,result))

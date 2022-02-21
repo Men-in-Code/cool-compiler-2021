@@ -28,14 +28,14 @@ class BaseCILToMIPSVisitor:
         self.method_original = {}
         self.var_offset = {}
         self.type_size = {} #quantity of attr. of that type
-        self.errors = {
-            'call_void_expr':'Runtime Error: A dispatch (static or dynamic) on void',
-            'case_void_expr': 'Runtime Error: A case on void',
-            'case_branch':'Runtime Error: Execution of a case statement without a matching branch',
-            'zero_division':'Runtime Error: Division by zero',
-            'substring_out_of_range':'Runtime Error: Substring out of range',
-            'heap_overflow':'Runtime Error: Heap overflow'
-        }
+        # self.errors = {
+        #     'call_void_expr':'Runtime Error: A dispatch (static or dynamic) on void',
+        #     'case_void_expr': 'Runtime Error: A case on void',
+        #     'case_branch':'Runtime Error: Execution of a case statement without a matching branch',
+        #     'zero_division':'Runtime Error: Division by zero',
+        #     'substring_out_of_range':'Runtime Error: Substring out of range',
+        #     'heap_overflow':'Runtime Error: Heap overflow'
+        # }
 
     @property
     def params(self):
@@ -51,13 +51,13 @@ class BaseCILToMIPSVisitor:
 
     def fill_dotdata_with_errors(self):
         self.data_section+= '''
-    #Errors
-    call_void_error: .asciiz "Runtime Error 1: A dispatch (static or dynamic) on void"
-    case_void_expr: .asciiz "Runtime Error 2: A case on void."
-    case_branch_error: .asciiz "Runtime Error 3: Execution of a case statement without a matching branch."
-    zero_division: .asciiz "Runtime Error 4: Division by zero"
-    substring_out_of_range: .asciiz "Runtime Error 5: Substring out of range."
-    heap_overflow: .asciiz "Runtime Error 6: Heap overflow"
+#Errors
+call_void_error: .asciiz "Runtime Error: A dispatch (static or dynamic) on void"
+case_void_expr: .asciiz "Runtime Error: A case on void."
+case_branch_error: .asciiz "Runtime Error: Execution of a case statement without a matching branch."
+zero_division: .asciiz "Runtime Error: Division by zero"
+substring_out_of_range: .asciiz "Runtime Error: Substring out of range."
+heap_overflow: .asciiz "Runtime Error: Heap overflow"
 '''
     def fill_dottext_with_errors(self):
         self.text_section+= '\n\n'
@@ -120,11 +120,14 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.fill_dottext_with_errors()
 
-        self.data_section+= '#TYPES\n'
+        self.data_section+= '\n#TYPES\n'
         for type in self.dottypes:
             self.visit(type)
+        self.data_section+= '\n#DATA_STR\n'
+        self.data_section+= 'empty_str_data: .asciiz ""\n'
         for data in self.dotdata:
             self.visit(data)
+        self.text_section+= '\n#CODE\n'
         for code in self.dotcode:
             self.visit(code)
 
@@ -137,13 +140,17 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
         self.data_section+= f'{node.name}_methods:\n'
 
+
         for i,attr in enumerate(node.attributes):
             self.attribute_offset[node.name,attr] = 4*(i+1)
         self.type_size[node.name] = len(node.attributes)
 
+        self.data_section+=f'.word {4*(len(node.attributes)+1)}\n' #Cantidad de espacio en memoria que pide una instancia del tipo actual
+        self.data_section+= f'.word type_{node.name}\n'
+
         for i,method in enumerate(node.methods):
             self.data_section+= f'.word {method[1]}\n'
-            self.method_offset[node.name,method[1]] = 4*i
+            self.method_offset[node.name,method[1]] = 4*(i+2)
             self.method_original[node.name,method[0]] = method[1]
 
         self.data_section+= '\n'
@@ -276,16 +283,16 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
         expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
-        self.text_section += f'lw $a0, {expresion_offset}($t0)\n' #OJO
+        self.text_section += f'lw $a0, {expresion_offset}($t0)\n' #Carga el data
         #El tipo dinamico se consigue a partir de expresion offset
         self.text_section += 'la $t1, call_void_error\n'
         self.text_section += 'beq $a0, $t1, call_void_error\n'
         
 
         #Selecting Function
-        self.text_section += f'lw $a1, ($a0)\n'
+        self.text_section += f'lw $a1, ($a0)\n'  #Cargar el adress
         original_fun = self.method_original[node.static_type,node.method_name]
-        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1)\n'
+        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1)\n' #Carga la funcion
         self.text_section += 'jalr $a2\n'
 
 
@@ -660,8 +667,69 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #         self.input_var = input_var
     #         self.dest = dest
 
-    # class AbortCilNode(InstructionCilNode):
-    #     pass
+    @visitor.when(AbortCilNode)
+    def visit(self, node):
+        self.text_section+= 'j end\n'
+
+
+    @visitor.when(TypeNameCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.self_param = self_param
+        # node.result = result
+        #####################################  
+
+        self_param_offset = self.var_offset[self.current_function.name,node.self_param]
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section+= '\n'
+        self.text_section += f'lw $a0, {self_param_offset}($sp)\n' #Carga direccion del data
+        #El tipo dinamico se consigue a partir de expresion offset
+        #Selecting Function
+        self.text_section += f'lw $a1, ($a0)\n'  #Cargar el adress
+        self.text_section += f'lw $a2, 4($a1)\n' #Carga el adress del string
+        self.text_section += f'sw $a2, {result_offset}($sp)' #Guardo el adress del string
+
+
+    @visitor.when(CopyCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.self_param = self_param
+        # node.result = result
+        #####################################  
+        self_param_offset = self.var_offset[self.current_function.name,node.self_param]
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        self.text_section+= '\n'
+        self.text_section += f'lw $t1, {self_param_offset}($sp)\n' #Carga direccion del data
+        self.text_section += f'lw $t2, ($t1)\n'  #Cargar el adress
+        self.text_section += f'lw $a0, ($t2)\n' #Carga el adress del string $a2 = Amount_attr
+
+        #Allocate space for new instance
+        self.text_section += '\n'
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n'
+        self.text_section += 'move $t4,$v0\n'
+
+        #t1 = old instance
+        #t3 = new instance
+        #t2 = aux
+        #loop to copy t1 to t3
+        self.text_section += f'loop_copyNode:\n'
+        self.text_section += f'lw $t2, ($t1)\n'
+        self.text_section += f'sw $t2, ($t3)\n'
+        self.text_section += f'addi $t1,$t1,4\n'
+        self.text_section += f'addi $t3,$t3,4\n'
+        self.text_section += f'subu $a0,$a0,4\n'
+        self.text_section += f'beqz $a0,end_loop_copy\n'
+        self.text_section += f'j loop_copyNode\n'
+
+
+        self.text_section += f'end_loop_copy:\n'
+        self.text_section += f'sw $t4, {result_offset}($sp)\n'
+
+
+
     # class TypeNameCilNode(InstructionCilNode):
     #     def __init__(self, type, result):
     #         self.type = type
@@ -677,6 +745,114 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     #     pass
     # class ReadIntCilNode(ReadCilNode):
     #     pass
+
+    @visitor.when(ConcatCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.self_param = self_param
+        # node.param_1 = param_1
+        # node.result_addr = result_addr
+        #####################################  
+        self_param_offset = self.var_offset[self.current_function.name,node.self_param]
+        param1_offset = self.var_offset[self.current_function.name,node.param_1]
+        result_offset = self.var_offset[self.current_function.name,node.result_addr]
+        self.text_section+= '\n'
+        self.text_section += f'lw $t1, {self_param_offset}($sp)\n' #Carga direccion del data
+        self.text_section += f'lw $t2, {param1_offset}($sp)\n'
+
+        #Capturoo los len de las instancias
+        self.text_section += f'lw $a1, 8($t1)\n'  #Cargar el len de t1
+        self.text_section += f'lw $a2, 8($t2)\n' #Carga el len de t2
+        self.text_section += f'add $a0, $a1, $a2\n' #a0 = a1 + a2
+
+        #Capturo los adress de los str
+        self.text_section += f'lw $t1, 4($t1)\n'  #Cargar el addr de t1
+        self.text_section += f'lw $t2, 4($t2)\n' #Carga el addr de t2
+
+        #Allocate space for new instance
+        self.text_section += '\n'
+        self.text_section += 'addi $a0,$a0, 1\n' #OJO: Test generated space if correct or not
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n' #dir3: se mueve para ir rellenando
+        self.text_section += 'move $t4,$v0\n' #fijo
+
+        #Loop to fill
+        self.text_section += f'loop_concat_dirSelf:\n'
+        self.text_section += f'lb $a1, ($t1)\n'
+        self.text_section += f'beqz $a1,loop_concat_dirParam\n'
+        self.text_section += f'sb $a1, ($t3)\n'
+        self.text_section += f'addi $t1,$t1,1\n'
+        self.text_section += f'addi $t3,$t3,1\n'
+        self.text_section += f'j loop_concat_dirSelf\n'
+
+        self.text_section += f'loop_concat_dirParam:\n'
+        self.text_section += f'lb $a1, ($t2)\n'
+        self.text_section += f'sb $a1, ($t3)\n'
+        self.text_section += f'addi $t2,$t2,1\n'
+        self.text_section += f'addi $t3,$t3,1\n'
+        self.text_section += f'beqz $a1,end_loop_concat\n'
+        self.text_section += f'j loop_concat_dirParam\n'
+
+        #End
+        self.text_section += f'end_loop_concat:\n'
+        self.text_section += f'sw $t4, {result_offset}($sp)\n'
+
+
+    @visitor.when(SubstringCilNode)
+    def visit(self, node):
+        ###################################################
+        # node.self_param = self_param
+        # node.value1 = value1
+        # node.value2 = value2
+        # node.result = result
+        ###################################################
+        self_param_offset = self.var_offset[self.current_function.name,node.self_param]
+        value1_offset = self.var_offset[self.current_function.name,node.value1]
+        value2_offset = self.var_offset[self.current_function.name,node.value2]
+        result_offset = self.var_offset[self.current_function.name,node.result]
+
+        self.text_section+= '\n'
+        self.text_section += f'lw $t0, {self_param_offset}($sp)\n' #Carga direccion de la instancia
+        self.text_section += f'lw $t1, {value1_offset}($sp)\n'  #Carga direccion de Int i
+        self.text_section += f'lw $t2, {value2_offset}($sp)\n' #Carga direccion de Int l
+
+        self.text_section += f'lw $a2, 8($t0)\n' #len del string
+        self.text_section += f'lw $a1, 4($t1)\n' #valor de i
+        self.text_section += f'lw $a0, 4($t2)\n' #valor de l
+
+        self.text_section += f'add $a3,$a1,$a0\n' # a3 = i + l
+        self.text_section += f'bgt $a3,$a2, substring_out_of_range\n' #if (i+l)> len-> Erorr
+
+        #Allocate space for isntance
+        self.text_section += '\n'
+        self.text_section += 'addi $a0,$a0,1\n' #OJO: Test generated space if correct or not
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n' #dir3: se mueve para ir rellenando
+        self.text_section += 'move $t4,$v0\n' #fijo
+
+        self.text_section += f'lw $a2, 4($t0)\n' #adress del string
+        self.text_section += f'add $a2,$a2,$a1\n' #empezar a partir de string[i]
+        #Loop to fill
+
+        self.text_section += f'lw $a0, 4($t2)\n' #valor de l
+
+        self.text_section += f'loop_substring_dirSelf:\n'
+        self.text_section += f'beqz $a0,end_loop_substr\n'
+        self.text_section += f'lb $a1, ($a2)\n'
+        self.text_section += f'sb $a1, ($t3)\n'
+        self.text_section += f'addi $a2,$a2,1\n'
+        self.text_section += f'addi $t3,$t3,1\n'
+        self.text_section += f'subi $a0,$a0,1\n'
+        self.text_section += f'j loop_substring_dirSelf\n'
+
+        #End
+        self.text_section += f'end_loop_substr:\n'
+        self.text_section += f'sb $zero, ($t3)\n'
+        self.text_section += f'sw $t4, {result_offset}($sp)\n'
 
 
     # class ConcatCilNode(InstructionCilNode):
