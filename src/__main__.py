@@ -23,28 +23,15 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
-        f():Object
-        {
-            case "Hello World" of
-            x : Int => x;
-            x : Object => x;
-            x: String => x;
-            esac
-        };
-        g():Int{
-            4 + 5 * 10
-        };
-
+        x : String;
         main(): IO
         { 
-            out_string( f().type_name() )
+            {
+                x <- in_string();
+                out_string(x);
+            }
         };
     };
-    class A inherits Main {
-        y:Int;
-
-
-     };
 '''
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza

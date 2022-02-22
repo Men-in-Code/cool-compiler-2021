@@ -266,25 +266,32 @@ class BaseCOOLToCILVisitor:
         self.register_instruction(cil.PrintIntCilNode(result))
         self.register_instruction(cil.ReturnCilNode(param_self))
 
-        #function in_string
-        self.current_function = self.register_function(self.to_function_name('in_string',self.current_type.name))
-        param_self = self.register_param(VariableInfo('self',self.current_type.name))
-        param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
-        result = self.define_internal_local()
-        self.register_instruction(cil.ReadStringCilNode(param_self,param1,result))
-        self.register_instruction(cil.ReturnCilNode(result))
-
         #function in_int
         self.current_function = self.register_function(self.to_function_name('in_int',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
-        param1 = self.register_param(VariableInfo('param1',self.context.get_type('String')))
         result = self.define_internal_local()
-        self.register_instruction(cil.ReadIntCilNode(param_self,param1,result))
+        input_int = self.define_internal_local()
+        self.register_instruction(cil.ReadIntCilNode(input_int))
+        self.register_instruction(cil.AllocateCilNode('Int',result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result,input_int],result))
         self.register_instruction(cil.ReturnCilNode(result))
 
-        #Funciones auxiliares
+        #function in_string
+        self.current_function = self.register_function(self.to_function_name('in_string',self.current_type.name))
+        param_self = self.register_param(VariableInfo('self',self.current_type.name))
+        result = self.define_internal_local()
+        data_aux_location = self.define_internal_local()
+        input_str = self.define_internal_local()
+        len_input_str = self.define_internal_local()
+        self.register_instruction(cil.ReadStringCilNode(data_aux_location))
+        self.register_instruction(cil.StaticCallCilNode('String','init_length',[data_aux_location],len_input_str))
+        self.register_instruction(cil.ReadStrEndCilNode(len_input_str,input_str))
 
+        self.register_instruction(cil.AllocateCilNode('String',result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_String',[result,input_str,len_input_str],result))
+        self.register_instruction(cil.ReturnCilNode(result))
 
+        #Limpiar Todo
         self.current_type = None
         self.current_function = None
         self.current_method = None
@@ -505,8 +512,8 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             dest = f'param_{node.id}'
             self.register_instruction(cil.AssignCilNode(dest,source))
         else: #attribute
-            self.register_instruction(cil.SetAttribCilNode(self.current_type.name,source,node.id))
-            dest = node.id
+            self.register_instruction(cil.SetAttribCilNode('self',self.current_type.name,node.id,source))
+            dest = source
             
         return dest
 

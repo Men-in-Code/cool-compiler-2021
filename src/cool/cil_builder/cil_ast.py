@@ -270,9 +270,7 @@ class ToStrCilNode(InstructionCilNode):
         self.ivalue = ivalue
 
 class ReadCilNode(InstructionCilNode):
-    def __init__(self,self_param,input_var,dest):
-        self.self_param = self_param
-        self.input_var = input_var
+    def __init__(self,dest):
         self.dest = dest
 
 class PrintCilNode(InstructionCilNode):
@@ -294,6 +292,10 @@ class PrintIntCilNode(PrintCilNode):
     pass
 class ReadStringCilNode(ReadCilNode):
     pass
+class ReadStrEndCilNode(InstructionCilNode):
+    def __init__(self, length,result):
+        self.length = length
+        self.result = result
 class ReadIntCilNode(ReadCilNode):
     pass
 class LengthCilNode(InstructionCilNode):

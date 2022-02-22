@@ -218,6 +218,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.data_section+= '\n#DATA_STR\n'
         self.data_section+= 'empty_str_data: .asciiz ""\n'
         self.data_section+= 'void_data: .word 0\n'
+        self.data_section+= 'aux_input_string: .space 1028\n\n'
         for data in self.dotdata:
             self.visit(data)
         self.text_section+= '\n#CODE\n'
@@ -280,39 +281,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'addi $sp, $sp,{4*(len(node.localvars)+1)}\n'
         self.text_section+= 'jr $ra\n'
 
-        
-
-        
-
-
-    # class ParamCilNode(CilNode):
-    #     def __init__(self, name):
-    #         self.name = name
-
-    # class LocalCilNode(CilNode):
-    #     def __init__(self, name):
-    #         self.name = name
-
-    # class InstructionCilNode(CilNode):
-    #     pass
-
-
-    # class BinaryCilNode(InstructionCilNode): #Binary Operations
-    #     def __init__(self, dest, left, right):
-    #         self.dest = dest
-    #         self.left = left
-    #         self.right = right
-
-    # class UnaryCilNode(InstructionCilNode): #Unary Operations
-    #     def __init__(self, dest, right):
-    #         self.dest = dest
-    #         self.right = right
-
-
-    # class ConstantCilNode(InstructionCilNode): #7.1 Constant
-    #     def __init__(self,vname,value):
-    #         self.vname = vname
-    #         self.value = value
 
     # #7.2 Identifiers, not necesary cil Node
 
@@ -1023,10 +991,66 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section += '\n'
 
-    # class ReadStringCilNode(ReadCilNode):
-    #     pass
-    # class ReadIntCilNode(ReadCilNode):
-    #     pass
+
+    @visitor.when(ReadIntCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.dest = dest
+        ##################################### 
+        dest_offset = self.var_offset[self.current_function.name,node.dest]
+        self.text_section+='\n'
+        self.text_section+= 'li $v0,5 # Read_Int_Section\n'
+        self.text_section+= 'syscall\n'
+        self.text_section+= f'sw $v0,{dest_offset}($sp)\n'
+
+    @visitor.when(ReadStringCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.dest = dest
+        ##################################### 
+        dest_offset = self.var_offset[self.current_function.name,node.dest]
+        #Save input string on aux data
+        self.text_section+='\n'
+        self.text_section+= 'li $v0,8 # Read_string_Section\n'
+        self.text_section+= 'la $a0,aux_input_string \n'
+        self.text_section+= 'li $a1,1024\n'
+        self.text_section+= 'syscall \n'
+        self.text_section+= f'sw $a0,{dest_offset}($sp)\n'
+
+    @visitor.when(ReadStrEndCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.dest = result
+        # node.length = length
+        ##################################### 
+        result_offset = self.var_offset[self.current_function.name,node.result]
+        length_offset = self.var_offset[self.current_function.name,node.length]
+
+        self.text_section += '\n'
+        self.text_section+= f'lw $a0,{length_offset}($sp)\n #END part of read'
+        #Allocate space for new instance
+        self.text_section += 'addi $a0,$a0,1\n'
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n' #dir3: se mueve para ir rellenando
+        self.text_section += 'move $t4,$v0\n' #fijo
+        #Copy data to heap
+        self.text_section += 'la $t1, aux_input_string\n'
+
+        self.text_section += f'loop_readString:\n'
+        self.text_section += f'beqz $a0,end_readString\n'
+        self.text_section += f'lb $a1, ($t1)\n'
+        self.text_section += f'sb $a1, ($t3)\n'
+        self.text_section += f'subi $a0,$a0,1\n'
+        self.text_section += f'addi $t1,$t1,1\n'
+        self.text_section += f'addi $t3,$t3,1\n'
+        self.text_section += f'j loop_readString\n'
+
+        self.text_section+= 'end_readString:\n' 
+        self.text_section += 'sb,$zero,($t3)\n'
+        self.text_section+= f'sw $t4,{result_offset}($sp)\n'
+    
 
     @visitor.when(ConcatCilNode)
     def visit(self, node):
@@ -1042,7 +1066,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'lw $t1, {self_param_offset}($sp)\n' #Carga direccion del data
         self.text_section += f'lw $t2, {param1_offset}($sp)\n'
 
-        #Capturoo los len de las instancias
+        #Capturo los len de las instancias
         self.text_section += f'lw $a1, 8($t1)\n'  #Cargar el len de t1
         self.text_section += f'lw $a2, 8($t2)\n' #Carga el len de t2
         self.text_section += f'add $a0, $a1, $a2\n' #a0 = a1 + a2
@@ -1136,12 +1160,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'sb $zero, ($t3)\n'
         self.text_section += f'sw $t4, {result_offset}($sp)\n'
 
-
-    # class ConcatCilNode(InstructionCilNode):
-    #     def __init__(self, strVal, var2,result):
-    #         self.strVal = strVal
-    #         self.var2 = var2
-    #         self.length = result
 
     # class SubstringCilNode(InstructionCilNode):
     #     def __init__(self, strVal,value1, value2,result):
