@@ -41,7 +41,7 @@ class BaseCOOLToCILVisitor:
         return vinfo.name
     
     def is_in_actual_params(self,param_name):
-        return param_name in self.params
+        return f'param_{param_name}' in (param.name for param in self.params)
 
 
     def register_local(self, vinfo,scope = None):
@@ -502,7 +502,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             dest = local_var
             self.register_instruction(cil.AssignCilNode(dest,source))
         elif self.is_in_actual_params(node.id): #param
-            dest = node.id
+            dest = f'param_{node.id}'
             self.register_instruction(cil.AssignCilNode(dest,source))
         else: #attribute
             self.register_instruction(cil.SetAttribCilNode(self.current_type.name,source,node.id))
@@ -627,51 +627,57 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.body = [Expression Node]
         ###############################
         expresionLabel_list = []
-        distance_list = []
 
-        result = self.define_internal_local()   
-        expr_is_void = self.define_internal_local()
-        dynamic_type_of_Expr = self.define_internal_local()
-        label_error = self.create_label()
-        label_end = self.create_label()
+        var_branch_location = self.define_internal_local() #Sitio donde se hace allocate del type_k
+        result_expr_branch = self.define_internal_local() #Resultado del expr_k del branch que se va a ejecutar
+        best_address = self.define_internal_local() #adress del init_method del menor type_k tal que type_k >= expr_0.Type()
+        comparison_result = self.define_internal_local() #Booleano que representa si el type_i actual = al menor type_k
+        actual_address = self.define_internal_local() #address actual que reviso
+        label_end = self.create_label() 
 
-        expr_result = self.visit(node.case)
-        self.register_instruction(cil.IsVoidCilNode(expr_result,expr_is_void))
-        self.register_instruction(cil.GotoIfCilNode(expr_is_void,label_error))
+        expr_result = self.visit(node.case,scope)
+        self.register_instruction(cil.CaseCilNode(expr_result))
 
-        #####
-        #Preguntar para coger el tipo menor
-        #####
+
         #Revisar tipos primero y quedarme con el menor Tipe P tal que P >= C
-        self.register_instruction(cil.TypeOfCilNode(expr_result,dynamic_type_of_Expr))
-        min_distance = self.define_internal_local()
-        condition_reached = self.define_internal_local()
-
         for (i,expr_node) in enumerate(node.body):
-            result_len_i = self.define_internal_local()
-            distance_list.append(result_len_i)
-            if i == 0:
-                self.register_instruction(cil.TypeDistanceCilNode(dynamic_type_of_Expr,expr_node.type,result_len_i))
-                self.register_instruction(cil.AssignCilNode(min_distance,result_len_i))
-            else:
-                expresionLabel_list.append(self.create_label())
-                self.register_instruction(cil.TypeDistanceCilNode(dynamic_type_of_Expr,expr_node.type,result_len_i))
-                self.register_instruction(cil.MinCilNode(result_len_i,min_distance,min_distance))
+            expresionLabel_list.append(self.create_label())
+            self.register_instruction(cil.BranchCilNode(f'{expr_node.type}_methods'))
 
-        for i in range(len(node.body)):
-            a_i_distance = distance_list[i]
+        self.register_instruction(cil.CaseEndCilNode(best_address))
+
+
+
+
+        for i,arg in enumerate(node.body):
             label_i = expresionLabel_list[i]
-            self.register_instruction(cil.EqualsCilNode(condition_reached,min_distance,a_i_distance))
-            self.register_instruction(cil.GotoIfCilNode(condition_reached,label_i))
+            self.register_instruction(cil.GetDataCilNode(f'{arg.type}_methods',actual_address))
+            self.register_instruction(cil.EqualsCilNode(comparison_result,best_address,actual_address))
+            self.register_instruction(cil.GotoIfCilNode(comparison_result,label_i))
 
         #Ejecutar a isntruccion correspondiente
         for (i,expr_node) in enumerate(node.body):
-            self.register_instruction(cil.LabelCilNode(expresionLabel_list[i]))
             child_scope = scope.create_child()
-            self.register_local(expr_node.id,child_scope)
-            body_node_result = self.visit(expr_node,child_scope)
-            self.register_instruction(cil.AssignCilNode(result,body_node_result))
+            self.register_instruction(cil.LabelCilNode(expresionLabel_list[i]))
+            var_expresion = self.register_local(VariableInfo(expr_node.id,expr_node.type),child_scope)
+
+            self.register_instruction(cil.AllocateCilNode(expr_node.type,var_branch_location))
+            self.register_instruction(cil.InternalCopyCilNode(expr_result,var_branch_location))
+
+            self.register_instruction(cil.AssignCilNode(var_expresion,var_branch_location))
+            body_node_result = self.visit(expr_node.expr,child_scope)
+            self.register_instruction(cil.AssignCilNode(result_expr_branch,body_node_result))
             self.register_instruction(cil.GotoCilNode(label_end))
+        
+        self.register_instruction(cil.LabelCilNode(label_end))
+        return result_expr_branch
+
+
+
+
+
+            
+        self.register_instruction(cil.GotoCilNode(label_end))
 
         #Si no supo encontrar P tal que C<=P dar error(es el mismo error que el isVoid, arreglar en caso de que se necesite)
         self.register_instruction(cil.LabelCilNode(label_error))

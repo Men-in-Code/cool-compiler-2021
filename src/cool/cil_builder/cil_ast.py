@@ -108,10 +108,17 @@ class LetCilNode(InstructionCilNode): #7.8 Let
     pass
 
 class CaseCilNode(InstructionCilNode): #7.9 Case
-    def __init__(self,expr,expr_list,label_list):
+    def __init__(self,expr):
         self.main_expr = expr
-        self.expr_list = expr_list
-        self.label = label_list
+
+class BranchCilNode(InstructionCilNode): #7.9 Case
+    def __init__(self,type_k):
+        self.type_k = type_k
+
+class CaseEndCilNode(InstructionCilNode): #7.9 Case
+    def __init__(self,result):
+        self.result = result
+
 
 class InstantiateCilNode(InstructionCilNode): #7.10 New
     pass
@@ -190,11 +197,16 @@ class AllocateCilNode(InstructionCilNode):
         self.type = type
         self.result = result
 
-class AllocateBySizeCilNode(InstructionCilNode):
+class AllocateDynamicCilNode(InstructionCilNode):
     #Liberar espacio en memoria a partir de una cantidad que se encuentra en una direccion de memoria.
-    def __init__(self,amount_location,result):
-        self.amount_location = amount_location
+    def __init__(self,address_in_local,result):
+        self.address_in_local = address_in_local
         self.result = result
+
+class InternalCopyCilNode(InstructionCilNode):
+    def __init__(self,dir_child,dir_ancestor):
+        self.dir_child = dir_child
+        self.dir_ancestor = dir_ancestor
 
 class GetDataCilNode(InstructionCilNode):
     def __init__(self,name,result):

@@ -137,7 +137,28 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
         self.text_section+= 'jr $ra\n'
         self.text_section+= '\n'
 
+    def fill_compute_type_distance(self): 
+    #tipo hijo se encuentra en $t1 y tipo padre se encuentra en $t2, los resultados se dejan en $s0 para el adress del menor type_k
+    #en $s1 se deja el menor count desde $t1 a $s0 (desde el expr_0.type() hasta el type_k)
+        self.text_section+= 'li $a1, 0\n' # a1 : Counter
 
+        self.text_section+= 'loop_distance_types:\n'
+        self.text_section+= 'beq $t1, $t2 end_ancestor_search\n' #Encontre al padre y por tanto comparar si mejora
+        self.text_section+= 'beqz $t1 end_method_compute_distance' #No encontre al padre y llegue a Object
+        self.text_section+= 'lw  $t1,8($t1)\n' #Cargar al padre
+        self.text_section+= 'addi $a1,$a1,1\n' #Aumentar el contador de padres encontrados
+        self.text_section+= 'j loop_distance_types\n' #Repetir
+
+        #Saltar a esta seccion si encontre en $t1 al ancestro $t2
+        self.text_section+= 'end_ancestor_search:\n'
+        self.text_section+= 'blt $a1,$s1 new_min_label_distance\n' #Preguntar si encontre un padre menor
+        self.text_section+= 'jr $ra\n'
+
+        self.text_section+= f'new_min_label_distance:\n'
+        self.text_section+= 'move $a1,$s1\n'
+        self.text_section+= 'move $t2,s0\n'
+        self.text_section+= 'end_method_compute_distance:\n'
+        self.text_section+= 'jr $ra\n'
 
 
 class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
@@ -167,6 +188,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
+        self.fill_compute_type_distance()
+
         self.data_section+= '\n#TYPES\n'
         for type in self.dottypes:
             self.visit(type)
@@ -183,7 +206,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     @visitor.when(TypeCilNode)
     def visit(self,node):
-        # self.text_section += '\n'
+        parent_name = self.context.get_type(node.name)
+        # self.text_section += '\n'    
 
         self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
         self.data_section+= f'{node.name}_methods:\n'
@@ -194,11 +218,12 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.type_size[node.name] = len(node.attributes)
 
         self.data_section+=f'.word {4*(len(node.attributes)+1)}\n' #Cantidad de espacio en memoria que pide una instancia del tipo actual
-        self.data_section+= f'.word type_{node.name}\n'
+        self.data_section+= f'.word type_{node.name}\n' #Type_name adress del tipo
+        self.data_section+= f'.word {1}'
 
         for i,method in enumerate(node.methods):
             self.data_section+= f'.word {method[1]}\n'
-            self.method_offset[node.name,method[1]] = 4*(i+2)
+            self.method_offset[node.name,method[1]] = 4*(i+3)
             self.method_original[node.name,method[0]] = method[1]
 
         self.data_section+= '\n'
@@ -400,11 +425,39 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     # class LetCilNode(InstructionCilNode): #7.8 Let
     #     pass
 
-    # class CaseCilNode(InstructionCilNode): #7.9 Case
-    #     def __init__(self,expr,expr_list,label_list):
-    #         self.main_expr = expr
-    #         self.expr_list = expr_list
-    #         self.label = label_list
+    @visitor.when(CaseCilNode)
+    def visit(self,node):
+        offset_expr_0 = self.var_offset[self.current_function.name,node.main_expr]  
+        self.text_section+= '\n'
+        self.text_section+= f'lw $t1,{offset_expr_0}($sp) \n'
+        #comparar con void y dar error
+        self.text_section += 'la $t3, void_data\n'
+        self.text_section += 'beq $t1, $t3, error_expr_void\n'
+
+        self.text_section+= f'lw $t1, ($t1)\n' #$t1 : adress del expr_0.type()
+        self.text_section+= f'li $s0,0\n' #s0: adress del menor type_P tal que P>=C (0 si no se encuentra ninguno)
+        self.text_section+= f'li $s1, 2147483647\n' #s1: distancia desde expr_0 hasta menor type_k actual(empieza en int.max)
+
+    @visitor.when(BranchCilNode) #7.9 Case
+    def visit(self,node):
+        ##############################
+        # node.type_k = type_k
+        ##############################
+        self.text_section+= f'la $t2,{node.type_k}\n'
+        self.text_section+= 'jal calculateDistance\n' #tipo hijo(C) tiene que estar en $t1 y tipo ancestro(P) tiene que estar en $t2 
+
+    @visitor.when(CaseEndCilNode)
+    def visit(self,node):
+        ##############################
+        # node.result
+        ##############################
+        result_offset = self.var_offset[self.current_function.name,node.result] 
+        self.text_section+='\n'
+        self.text_section+= 'beqz $s0, error_branch\n'
+        self.text_section+=f'sw $s0, {result_offset}($sp)\n'
+
+
+
 
     # @visitor.when(InstantiateCilNode)
     # def visit(self,node):
@@ -686,22 +739,24 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += 'sw $t1, ($t3)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
         self.text_section += f'sw, $t3, {result_offset}($sp)\n'
 
-    @visitor.when(AllocateBySizeCilNode)   
+    @visitor.when(AllocateDynamicCilNode)   
     def visit(self,node):
         #######################################
-        # node.amount_location = amount_location
+        # node.address_in_local = address_in_local
         # node.result = result
         #######################################
+        address_in_local_offset = self.var_offset[self.current_function.name,node.address_in_local_offset]
         result_offset = self.var_offset[self.current_function.name,node.result]
-        size_offset = self.var_offset[self.current_function.name,node.result] #mas 1 para guardar el addr del tipo
-        
+
         self.text_section += '\n'
-        self.text_section += f'lw $a0,{size_offset}($sp)\n'
+        self.text_section+= f'lw $t1,{address_in_local_offset}$(sp)\n'   
+        self.text_section+= f'lw $a0,($t1)\n'     
         self.text_section += 'li, $v0, 9\n'
         self.text_section += 'syscall\n'
         self.text_section += 'blt, $sp, $v0,error_heap\n'
         self.text_section += 'move, $t3, $v0\n'
 
+        self.text_section += 'sw $t1, ($t3)\n' #guardo en el primer espacio de memoria de la nueva instancia el addr del tipo
         self.text_section += f'sw, $t3, {result_offset}($sp)\n'
 
 
@@ -909,8 +964,43 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'end_loop_copy:\n'
         self.text_section += f'sw $t4, {result_offset}($sp)\n'
     
-  
-        
+    @visitor.when(InternalCopyCilNode)
+    def visit(self, node):
+        #####################################  
+        # node.dir_child = dir_child
+        # node.dir_ancestor = dir_ancestor
+        #####################################  
+        child_offset = self.var_offset[self.current_function.name,node.dir_child]
+        ancestor_offset = self.var_offset[self.current_function.name,node.dir_ancestor]
+
+        self.text_section+= '\n'
+        self.text_section += f'lw $t1, {child_offset}($sp)\n' #Carga direccion del data_child
+        self.text_section += f'lw $t2, {ancestor_offset}($sp)\n' #Carga direccion del data_ancestor
+
+        self.text_section += f'lw $a2, ($t2)\n'  #Cargar el adress
+        self.text_section += f'lw $a2, ($a2)\n' 
+
+        self.text_section+=f'subi $a2,$a2,4\n'#cantidad de atributos a copiar
+        self.text_section+=f'addi $t1,$t1,4\n'
+        self.text_section+=f'addi $t2,$t2,4\n'
+
+        #t1 = old instance
+        #t2 = new instance
+        #a2 = counter to reach 0
+        #loop to copy t1 to t2
+        self.text_section += f'loop_copyNode:\n'
+        self.text_section += f'lw $a1, ($t1)\n'
+        self.text_section += f'sw $a1, ($t2)\n'
+        self.text_section += f'addi $t1,$t1,4\n'
+        self.text_section += f'addi $t2,$t2,4\n'
+        self.text_section += f'subu $a2,$a2,4\n'
+        self.text_section += f'beqz $a2,end_loop_copy\n'
+        self.text_section += f'j loop_copyNode\n'
+
+
+        self.text_section += f'end_loop_copy:\n'
+        self.text_section += '\n'
+
     # class ReadStringCilNode(ReadCilNode):
     #     pass
     # class ReadIntCilNode(ReadCilNode):

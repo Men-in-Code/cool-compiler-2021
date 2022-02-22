@@ -23,20 +23,20 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
+        x:Int;
         main(): Object
         { 
             
-           out_int( (new A).elpepe())
+           (new A).f()
         };
     };
     class A inherits Main {
-        y:Main<-(new Main);
-        elpepe():Int
+        y:Int;
+        f():Object
         {
-            let x:Int <- 1,
-            x:Int <- 2
-
-            in x
+            case 4 of
+            x : Object => x;
+            esac
         };
 
      };
