@@ -652,8 +652,8 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         for i,arg in enumerate(node.body):
             label_i = expresionLabel_list[i]
             self.register_instruction(cil.GetDataCilNode(f'{arg.type}_methods',actual_address))
-            self.register_instruction(cil.EqualsCilNode(comparison_result,best_address,actual_address))
-            self.register_instruction(cil.GotoIfCilNode(comparison_result,label_i))
+            self.register_instruction(cil.EqualCilNode(comparison_result,best_address,actual_address))
+            self.register_instruction(cil.GotoBoolIfCilNode(comparison_result,label_i))
 
         #Ejecutar a isntruccion correspondiente
         for (i,expr_node) in enumerate(node.body):

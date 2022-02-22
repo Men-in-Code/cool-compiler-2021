@@ -24,20 +24,24 @@ if __name__ == '__main__':
     text = ''' 
     class Main inherits IO {
         x:Int;
-        main(): Object
-        { 
-            
-           (new A).f()
-        };
-    };
-    class A inherits Main {
-        y:Int;
-        f():Object
+        f():Int
         {
             case 4 of
             x : Object => x;
             esac
         };
+        g():Int{
+            4 + 5 * 10
+        };
+
+        main(): IO
+        { 
+            out_int( f() )
+        };
+    };
+    class A inherits Main {
+        y:Int;
+
 
      };
 '''

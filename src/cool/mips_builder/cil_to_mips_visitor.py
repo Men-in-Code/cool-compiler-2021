@@ -140,11 +140,13 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
     def fill_compute_type_distance(self): 
     #tipo hijo se encuentra en $t1 y tipo padre se encuentra en $t2, los resultados se dejan en $s0 para el adress del menor type_k
     #en $s1 se deja el menor count desde $t1 a $s0 (desde el expr_0.type() hasta el type_k)
+        self.text_section+= '\n'
+        self.text_section+= 'calculateDistance:\n'
         self.text_section+= 'li $a1, 0\n' # a1 : Counter
 
         self.text_section+= 'loop_distance_types:\n'
         self.text_section+= 'beq $t1, $t2 end_ancestor_search\n' #Encontre al padre y por tanto comparar si mejora
-        self.text_section+= 'beqz $t1 end_method_compute_distance' #No encontre al padre y llegue a Object
+        self.text_section+= 'beqz $t1 end_method_compute_distance\n' #No encontre al padre y llegue a Object
         self.text_section+= 'lw  $t1,8($t1)\n' #Cargar al padre
         self.text_section+= 'addi $a1,$a1,1\n' #Aumentar el contador de padres encontrados
         self.text_section+= 'j loop_distance_types\n' #Repetir
@@ -155,8 +157,8 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
         self.text_section+= 'jr $ra\n'
 
         self.text_section+= f'new_min_label_distance:\n'
-        self.text_section+= 'move $a1,$s1\n'
-        self.text_section+= 'move $t2,s0\n'
+        self.text_section+= 'move $s1,$a1\n'
+        self.text_section+= 'move $s0,$t2\n'
         self.text_section+= 'end_method_compute_distance:\n'
         self.text_section+= 'jr $ra\n'
 
@@ -206,7 +208,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     @visitor.when(TypeCilNode)
     def visit(self,node):
-        parent_name = self.context.get_type(node.name)
+        parent_name = self.context.get_type(node.name).parent 
+        parent_name = 0 if parent_name is None else f'{parent_name.name}_methods'
         # self.text_section += '\n'    
 
         self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
@@ -219,7 +222,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.data_section+=f'.word {4*(len(node.attributes)+1)}\n' #Cantidad de espacio en memoria que pide una instancia del tipo actual
         self.data_section+= f'.word type_{node.name}\n' #Type_name adress del tipo
-        self.data_section+= f'.word {1}'
+        self.data_section+= f'.word {parent_name}\n'
 
         for i,method in enumerate(node.methods):
             self.data_section+= f'.word {method[1]}\n'
@@ -434,7 +437,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += 'la $t3, void_data\n'
         self.text_section += 'beq $t1, $t3, error_expr_void\n'
 
-        self.text_section+= f'lw $t1, ($t1)\n' #$t1 : adress del expr_0.type()
+        self.text_section+= f'lw $t1, ($t1) #Adress Method\n' #$t1 : adress del expr_0.type()
         self.text_section+= f'li $s0,0\n' #s0: adress del menor type_P tal que P>=C (0 si no se encuentra ninguno)
         self.text_section+= f'li $s1, 2147483647\n' #s1: distancia desde expr_0 hasta menor type_k actual(empieza en int.max)
 
@@ -837,8 +840,18 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         #node.label = label
         ###########################################
         offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
-        self.text_section += f'lw $t0, {offset_val_dir}($sp) #If Label\n' #Carga el bool
-        self.text_section += f'lw $t0, 4($t0)\n' #Carga el valor del bool
+        self.text_section += f'lw $t0, {offset_val_dir}($sp) #Goto If Label\n' #Carga el bool
+        self.text_section += f'lw $t0, 4($t0) #Load Bool Value\n' #Carga el valor del bool
+        self.text_section += f'beq $t0, 1 {node.label}\n'
+
+    @visitor.when (GotoBoolIfCilNode)
+    def visit(self, node):
+        ###########################################
+        #node.val_dir = val_dir
+        #node.label = label
+        ###########################################
+        offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
+        self.text_section += f'lw $t0, {offset_val_dir}($sp) #Goto If Label\n' #Carga el bool
         self.text_section += f'beq $t0, 1 {node.label}\n'
 
     @visitor.when (NotGotoIfCilNode)
@@ -988,17 +1001,17 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         #t2 = new instance
         #a2 = counter to reach 0
         #loop to copy t1 to t2
-        self.text_section += f'loop_copyNode:\n'
+        self.text_section += f'loop_InternalcopyNode:\n'
         self.text_section += f'lw $a1, ($t1)\n'
         self.text_section += f'sw $a1, ($t2)\n'
         self.text_section += f'addi $t1,$t1,4\n'
         self.text_section += f'addi $t2,$t2,4\n'
         self.text_section += f'subu $a2,$a2,4\n'
-        self.text_section += f'beqz $a2,end_loop_copy\n'
-        self.text_section += f'j loop_copyNode\n'
+        self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
+        self.text_section += f'j loop_InternalcopyNode\n'
 
 
-        self.text_section += f'end_loop_copy:\n'
+        self.text_section += f'end_loop_Internalcopy:\n'
         self.text_section += '\n'
 
     # class ReadStringCilNode(ReadCilNode):
@@ -1148,6 +1161,3 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     # class ErrorCilNode(InstructionCilNode):
     #     def __init__(self,name):
     #         self.name = name
-
-    # class EqualsCilNode(BinaryCilNode):
-    #     pass

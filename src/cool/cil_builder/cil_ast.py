@@ -231,6 +231,11 @@ class GotoIfCilNode(InstructionCilNode):
     def __init__(self,val_dir,label):
         self.val_dir = val_dir
         self.label = label
+
+class GotoBoolIfCilNode(InstructionCilNode):
+    def __init__(self,val_dir,label):
+        self.val_dir = val_dir
+        self.label = label
 class NotGotoIfCilNode:
     def __init__(self,val_dir,label):
         self.val_dir = val_dir
@@ -328,9 +333,6 @@ class MinCilNode(InstructionCilNode):
 class ErrorCilNode(InstructionCilNode):
     def __init__(self,name):
         self.name = name
-
-class EqualsCilNode(BinaryCilNode):
-    pass
 
 
 ############# New Nodes ###################     
