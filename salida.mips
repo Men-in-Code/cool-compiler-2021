@@ -1,12 +1,18 @@
 .data
 
 #Errors
-call_void_error: .asciiz "Runtime Error: A dispatch (static or dynamic) on void"
-case_void_expr: .asciiz "Runtime Error: A case on void."
-case_branch_error: .asciiz "Runtime Error: Execution of a case statement without a matching branch."
-zero_division: .asciiz "Runtime Error: Division by zero"
-substring_out_of_range: .asciiz "Runtime Error: Substring out of range."
-heap_overflow: .asciiz "Runtime Error: Heap overflow"
+call_void_error: .asciiz "Runtime Error: A dispatch (static or dynamic) on void
+"
+case_void_expr: .asciiz "Runtime Error: A case on void.
+"
+case_branch_error: .asciiz "Runtime Error: Execution of a case statement without a matching branch.
+"
+zero_division: .asciiz "Runtime Error: Division by zero.
+"
+substring_out_of_range: .asciiz "Runtime Error: Substring out of range.
+"
+heap_overflow: .asciiz "Runtime Error: Heap overflow.
+"
 
 #TYPES
 type_Object: .asciiz "Object"
@@ -63,7 +69,7 @@ Bool_methods:
 
 type_Main: .asciiz "Main"
 Main_methods:
-.word 8
+.word 4
 .word type_Main
 .word IO_methods
 .word function_abort_at_Object
@@ -79,7 +85,7 @@ Main_methods:
 
 type_A: .asciiz "A"
 A_methods:
-.word 12
+.word 8
 .word type_A
 .word Main_methods
 .word function_abort_at_Object
@@ -97,6 +103,7 @@ A_methods:
 #DATA_STR
 empty_str_data: .asciiz ""
 void_data: .word 0
+data_0: .asciiz "Hello World"
 .text
 jal entry
 
@@ -169,7 +176,7 @@ jr $ra
 
 
 calculateDistance:
-li $a1, 0
+li $a1, 0 #calculateDistance Funct
 loop_distance_types:
 beq $t1, $t2 end_ancestor_search
 beqz $t1 end_method_compute_distance
@@ -185,13 +192,24 @@ move $s0,$t2
 end_method_compute_distance:
 jr $ra
 
+function_internalcopy:
+loop_InternalcopyNode:
+beqz $a2,end_loop_Internalcopy
+lw $a1, ($t1)
+sw $a1, ($t2)
+addi $t1,$t1,4
+addi $t2,$t2,4
+subu $a2,$a2,4
+j loop_InternalcopyNode
+end_loop_Internalcopy:
+jr $ra
 #CODE
 
 entry:
 addi, $sp, $sp, -12
 sw $ra, ($sp)
 
-addi $a0, $zero, 8
+addi $a0, $zero, 4
 li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
@@ -586,71 +604,62 @@ addi $sp, $sp,8
 jr $ra
 
 init_Main:
-addi, $sp, $sp, -12
+addi, $sp, $sp, -4
 sw $ra, ($sp)
 
-addi, $t1, $zero, 0
-sw, $t1, 4($sp)
-
-addi $a0, $zero, 8
-li, $v0, 9
-syscall
-blt, $sp, $v0,error_heap
-move, $t3, $v0
-la $t1,Int_methods
-sw $t1, ($t3)
-sw, $t3, 8($sp)
-move $t0 $sp #call to function init_Int
-addi, $sp, $sp, -8
-lw, $s0, 8($t0) #loading param_local__internal_1
-sw, $s0 0($sp) #setting param for function call
-lw, $s0, 4($t0) #loading param_local__internal_0
-sw, $s0 4($sp) #setting param for function call
-jal init_Int
-addi, $sp, $sp, 8
-sw $s0, 8($sp) #Saving result on local__internal_1
-
-lw, $t1, 8($sp)   
-lw, $t3, 12($sp)  
-sw, $t1, 4($t3)   
-
-lw $s0, 12($sp)
+lw $s0, 4($sp)
 lw $ra, ($sp)
-addi $sp, $sp,12
+addi $sp, $sp,4
 jr $ra
 
 function_f_at_Main:
-addi, $sp, $sp, -40
+addi, $sp, $sp, -64
 sw $ra, ($sp)
 
-addi $a0, $zero, 8
+addi $a0, $zero, 12
 li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
 move, $t3, $v0
-la $t1,Int_methods
+la $t1,String_methods
 sw $t1, ($t3)
 sw, $t3, 28($sp)
 
-addi, $t1, $zero, 4
-sw, $t1, 24($sp)
-move $t0 $sp #call to function init_Int
-addi, $sp, $sp, -8
+la $t1, data_0
+sw $t1, 32($sp)
+move $t0 $sp #call to function init_length
+addi, $sp, $sp, -4
+lw, $s0, 32($t0) #loading param_local_f_at_Main_internal_7
+sw, $s0 0($sp) #setting param for function call
+jal init_length
+addi, $sp, $sp, 4
+sw $s0, 36($sp) #Saving result on local_f_at_Main_internal_8
+move $t0 $sp #call to function init_String
+addi, $sp, $sp, -12
 lw, $s0, 28($t0) #loading param_local_f_at_Main_internal_6
 sw, $s0 0($sp) #setting param for function call
-lw, $s0, 24($t0) #loading param_local_f_at_Main_internal_5
+lw, $s0, 32($t0) #loading param_local_f_at_Main_internal_7
 sw, $s0 4($sp) #setting param for function call
-jal init_Int
-addi, $sp, $sp, 8
-sw $s0, 28($sp) #Saving result on local_f_at_Main_internal_6
+lw, $s0, 36($t0) #loading param_local_f_at_Main_internal_8
+sw, $s0 8($sp) #setting param for function call
+jal init_String
+addi, $sp, $sp, 12
+sw $s0, 24($sp) #Saving result on local_f_at_Main_internal_5
 
 lw $t1,28($sp) 
 la $t3, void_data
 beq $t1, $t3, error_expr_void
-lw $t1, ($t1) #Adress Method
+lw $v1, ($t1) #Adress Method
 li $s0,0
 li $s1, 2147483647
+move $t1,$v1
 la $t2,Int_methods
+jal calculateDistance
+move $t1,$v1
+la $t2,Object_methods
+jal calculateDistance
+move $t1,$v1
+la $t2,String_methods
 jal calculateDistance
 
 beqz $s0, error_branch
@@ -667,6 +676,30 @@ jal Equals_comparison
 sw, $t3, 16($sp)
 lw $t0, 16($sp) #Goto If Label
 beq $t0, 1 label2
+
+la $t1, Object_methods
+sw $t1, 20($sp)
+
+lw, $t3, 20($sp)
+lw,$t1,4($t3)
+lw, $t3, 12($sp)
+lw,$t2,4($t3)
+jal Equals_comparison
+sw, $t3, 16($sp)
+lw $t0, 16($sp) #Goto If Label
+beq $t0, 1 label3
+
+la $t1, String_methods
+sw $t1, 20($sp)
+
+lw, $t3, 20($sp)
+lw,$t1,4($t3)
+lw, $t3, 12($sp)
+lw,$t2,4($t3)
+jal Equals_comparison
+sw, $t3, 16($sp)
+lw $t0, 16($sp) #Goto If Label
+beq $t0, 1 label4
 label2:
 
 addi $a0, $zero, 8
@@ -685,26 +718,68 @@ lw $a2, ($a2)
 subi $a2,$a2,4
 addi $t1,$t1,4
 addi $t2,$t2,4
-loop_InternalcopyNode:
-lw $a1, ($t1)
-sw $a1, ($t2)
-addi $t1,$t1,4
-addi $t2,$t2,4
-subu $a2,$a2,4
-beqz $a2,end_loop_Internalcopy
-j loop_InternalcopyNode
-end_loop_Internalcopy:
+jal function_internalcopy
 
 lw $t1, 4($sp)
-sw $t1, 32($sp)
-lw $t1, 32($sp)
+sw $t1, 40($sp)
+lw $t1, 40($sp)
+sw $t1, 8($sp)
+j label1
+label3:
+
+addi $a0, $zero, 4
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,Object_methods
+sw $t1, ($t3)
+sw, $t3, 4($sp)
+
+lw $t1, 28($sp)
+lw $t2, 4($sp)
+lw $a2, ($t2)
+lw $a2, ($a2)
+subi $a2,$a2,4
+addi $t1,$t1,4
+addi $t2,$t2,4
+jal function_internalcopy
+
+lw $t1, 4($sp)
+sw $t1, 48($sp)
+lw $t1, 48($sp)
+sw $t1, 8($sp)
+j label1
+label4:
+
+addi $a0, $zero, 12
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,String_methods
+sw $t1, ($t3)
+sw, $t3, 4($sp)
+
+lw $t1, 28($sp)
+lw $t2, 4($sp)
+lw $a2, ($t2)
+lw $a2, ($a2)
+subi $a2,$a2,4
+addi $t1,$t1,4
+addi $t2,$t2,4
+jal function_internalcopy
+
+lw $t1, 4($sp)
+sw $t1, 56($sp)
+lw $t1, 56($sp)
 sw $t1, 8($sp)
 j label1
 label1:
 
 lw $s0, 8($sp)
 lw $ra, ($sp)
-addi $sp, $sp,40
+addi $sp, $sp,64
 jr $ra
 
 function_g_at_Main:
@@ -830,28 +905,40 @@ addi $sp, $sp,44
 jr $ra
 
 function_main_at_Main:
-addi, $sp, $sp, -12
+addi, $sp, $sp, -16
 sw $ra, ($sp)
 move $t0 $sp #call to function f
 addi, $sp, $sp, -4
-lw, $s0, 12($t0) #loading param_self
+lw, $s0, 16($t0) #loading param_self
 sw, $s0 0($sp) #setting param for function call
 jal function_f_at_Main
 addi, $sp, $sp, 4
-sw $s0, 8($sp) #Saving result on local_main_at_Main_internal_1
-move $t0 $sp #call to function out_int
+sw $s0, 12($sp) #Saving result on local_main_at_Main_internal_2
+move $t0 $sp
+addi, $sp, $sp, -4
+lw, $s0, 12($t0)
+sw, $s0 0($sp)
+lw $a0, 12($t0)
+la $t1, void_data
+beq $a0, $t1, error_call_void
+lw $a1, ($a0)
+lw $a2, 16($a1)
+jalr $a2
+addi, $sp, $sp, 4
+sw $s0, 8($sp)
+move $t0 $sp #call to function out_string
 addi, $sp, $sp, -8
-lw, $s0, 12($t0) #loading param_self
+lw, $s0, 16($t0) #loading param_self
 sw, $s0 0($sp) #setting param for function call
 lw, $s0, 8($t0) #loading param_local_main_at_Main_internal_1
 sw, $s0 4($sp) #setting param for function call
-jal function_out_int_at_IO
+jal function_out_string_at_IO
 addi, $sp, $sp, 8
 sw $s0, 4($sp) #Saving result on local_main_at_Main_internal_0
 
 lw $s0, 4($sp)
 lw $ra, ($sp)
-addi $sp, $sp,12
+addi $sp, $sp,16
 jr $ra
 
 init_A:
@@ -881,7 +968,7 @@ sw $s0, 8($sp) #Saving result on local__internal_1
 
 lw, $t1, 8($sp)   
 lw, $t3, 12($sp)  
-sw, $t1, 8($t3)   
+sw, $t1, 4($t3)   
 
 lw $s0, 12($sp)
 lw $ra, ($sp)

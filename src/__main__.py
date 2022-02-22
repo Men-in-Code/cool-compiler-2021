@@ -23,11 +23,12 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
-        x:Int;
-        f():Int
+        f():Object
         {
-            case 4 of
+            case "Hello World" of
+            x : Int => x;
             x : Object => x;
+            x: String => x;
             esac
         };
         g():Int{
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 
         main(): IO
         { 
-            out_int( f() )
+            out_string( f().type_name() )
         };
     };
     class A inherits Main {

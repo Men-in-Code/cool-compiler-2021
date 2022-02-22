@@ -672,20 +672,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.register_instruction(cil.LabelCilNode(label_end))
         return result_expr_branch
 
-
-
-
-
-            
-        self.register_instruction(cil.GotoCilNode(label_end))
-
-        #Si no supo encontrar P tal que C<=P dar error(es el mismo error que el isVoid, arreglar en caso de que se necesite)
-        self.register_instruction(cil.LabelCilNode(label_error))
-        self.register_instruction(cil.ErrorCilNode('IsVoidInCaseNodeExpresion'))
-        self.register_instruction(cil.LabelCilNode(label_end))
-
-        return result
-
     @visitor.when(VarDeclarationNode) #Case Node
     def visit(self, node, scope):
         ###############################

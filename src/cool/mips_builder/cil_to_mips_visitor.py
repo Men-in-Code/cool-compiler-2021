@@ -52,12 +52,12 @@ class BaseCILToMIPSVisitor:
     def fill_dotdata_with_errors(self):
         self.data_section+= '''
 #Errors
-call_void_error: .asciiz "Runtime Error: A dispatch (static or dynamic) on void"
-case_void_expr: .asciiz "Runtime Error: A case on void."
-case_branch_error: .asciiz "Runtime Error: Execution of a case statement without a matching branch."
-zero_division: .asciiz "Runtime Error: Division by zero"
-substring_out_of_range: .asciiz "Runtime Error: Substring out of range."
-heap_overflow: .asciiz "Runtime Error: Heap overflow"
+call_void_error: .asciiz "Runtime Error: A dispatch (static or dynamic) on void\n"
+case_void_expr: .asciiz "Runtime Error: A case on void.\n"
+case_branch_error: .asciiz "Runtime Error: Execution of a case statement without a matching branch.\n"
+zero_division: .asciiz "Runtime Error: Division by zero.\n"
+substring_out_of_range: .asciiz "Runtime Error: Substring out of range.\n"
+heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
 '''
     def fill_dottext_with_errors(self):
         self.text_section+= '\n\n'
@@ -142,7 +142,7 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
     #en $s1 se deja el menor count desde $t1 a $s0 (desde el expr_0.type() hasta el type_k)
         self.text_section+= '\n'
         self.text_section+= 'calculateDistance:\n'
-        self.text_section+= 'li $a1, 0\n' # a1 : Counter
+        self.text_section+= 'li $a1, 0 #calculateDistance Funct\n' # a1 : Counter
 
         self.text_section+= 'loop_distance_types:\n'
         self.text_section+= 'beq $t1, $t2 end_ancestor_search\n' #Encontre al padre y por tanto comparar si mejora
@@ -162,9 +162,28 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow"
         self.text_section+= 'end_method_compute_distance:\n'
         self.text_section+= 'jr $ra\n'
 
+    def fill_internalCopy(self):
+        #t1 = old instance
+        #t2 = new instance
+        #a2 = counter to reach 0
+        #loop to copy t1 to t2
+        self.text_section += f'\n'
+        self.text_section += f'function_internalcopy:\n'
+        self.text_section += f'loop_InternalcopyNode:\n'
+        self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
+        self.text_section += f'lw $a1, ($t1)\n'
+        self.text_section += f'sw $a1, ($t2)\n'
+        self.text_section += f'addi $t1,$t1,4\n'
+        self.text_section += f'addi $t2,$t2,4\n'
+        self.text_section += f'subu $a2,$a2,4\n'
+        self.text_section += f'j loop_InternalcopyNode\n'
+
+
+        self.text_section += f'end_loop_Internalcopy:\n'
+        self.text_section += f'jr $ra'
+
 
 class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
-
     @visitor.on('node')
     def visit(self, node):
         pass
@@ -191,6 +210,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
         self.fill_compute_type_distance()
+        self.fill_internalCopy()
 
         self.data_section+= '\n#TYPES\n'
         for type in self.dottypes:
@@ -437,7 +457,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += 'la $t3, void_data\n'
         self.text_section += 'beq $t1, $t3, error_expr_void\n'
 
-        self.text_section+= f'lw $t1, ($t1) #Adress Method\n' #$t1 : adress del expr_0.type()
+        self.text_section+= f'lw $v1, ($t1) #Adress Method\n' #$t1 : adress del expr_0.type()
         self.text_section+= f'li $s0,0\n' #s0: adress del menor type_P tal que P>=C (0 si no se encuentra ninguno)
         self.text_section+= f'li $s1, 2147483647\n' #s1: distancia desde expr_0 hasta menor type_k actual(empieza en int.max)
 
@@ -446,6 +466,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         ##############################
         # node.type_k = type_k
         ##############################
+        self.text_section+= 'move $t1,$v1\n'
         self.text_section+= f'la $t2,{node.type_k}\n'
         self.text_section+= 'jal calculateDistance\n' #tipo hijo(C) tiene que estar en $t1 y tipo ancestro(P) tiene que estar en $t2 
 
@@ -991,27 +1012,15 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'lw $t2, {ancestor_offset}($sp)\n' #Carga direccion del data_ancestor
 
         self.text_section += f'lw $a2, ($t2)\n'  #Cargar el adress
-        self.text_section += f'lw $a2, ($a2)\n' 
+        self.text_section += f'lw $a2, ($a2)\n'  #Catga el numero
 
         self.text_section+=f'subi $a2,$a2,4\n'#cantidad de atributos a copiar
         self.text_section+=f'addi $t1,$t1,4\n'
         self.text_section+=f'addi $t2,$t2,4\n'
 
-        #t1 = old instance
-        #t2 = new instance
-        #a2 = counter to reach 0
-        #loop to copy t1 to t2
-        self.text_section += f'loop_InternalcopyNode:\n'
-        self.text_section += f'lw $a1, ($t1)\n'
-        self.text_section += f'sw $a1, ($t2)\n'
-        self.text_section += f'addi $t1,$t1,4\n'
-        self.text_section += f'addi $t2,$t2,4\n'
-        self.text_section += f'subu $a2,$a2,4\n'
-        self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
-        self.text_section += f'j loop_InternalcopyNode\n'
 
+        self.text_section+= f'jal function_internalcopy\n'
 
-        self.text_section += f'end_loop_Internalcopy:\n'
         self.text_section += '\n'
 
     # class ReadStringCilNode(ReadCilNode):
