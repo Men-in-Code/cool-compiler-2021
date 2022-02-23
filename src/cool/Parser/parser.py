@@ -18,17 +18,17 @@ class Parser():
                                 debuglog=None,
                                 errorlog=None, )
 
-    # precedence = (
-    #     ('right', 'LARROW'),
-    #     ('right', 'not'),
-    #     ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
-    #     ('left', 'PLUS', 'MINUS'),
-    #     ('left', 'STAR', 'DIV'),
-    #     ('right', 'isvoid'),
-    #     # ('right', 'INT_COMP'),
-    #     # ('left', 'AT'),
-    #     ('left', 'DOT')
-    # )
+    precedence = (
+        ('right', 'LARROW'),
+        ('right', 'not'),
+        ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
+        ('left', 'PLUS', 'MINUS'),
+        ('left', 'STAR', 'DIV'),
+        ('right', 'isvoid'),
+        ('right', 'NOX'),
+        ('left', 'ARROBA'),
+        ('left', 'DOT')
+    )
 
     def parse(self, program, debug=False):
         self.found_error = False
@@ -190,21 +190,21 @@ class Parser():
         p[0] = AssignNode(p[1],p[3], line, col)
 
     def p_expr_boolean(self,p):
-        '''expr : boolean'''
+        '''expr : not expr
+                | expr '''
         p[0] = p[1]
     
-    def p_boolean(self,p):
-        '''boolean : not comparison
-                   | comparison'''
-        # col = self.lexer.get_column(p.slice[1])
-        line = p.lineno(1)
-        p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
+    # def p_boolean(self,p):
+    #     '''boolean : not comparison
+    #                | comparison'''
+    #     # col = self.lexer.get_column(p.slice[1])
+    #     line = p.lineno(1)
+    #     p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
 
-    def p_comparison(self,p):
-        '''comparison : comparison EQUAL boolean
-                      | comparison LESS boolean
-                      | comparison LESSEQ boolean 
-                      | arith'''
+    def p_expr_comparison(self,p):
+        '''expr : expr EQUAL expr
+                    | expr LESS expr
+                    | expr LESSEQ expr'''
         if len(p) ==4 and p[2] == '=':
             p[0] = EqualNode(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '<':
@@ -213,39 +213,44 @@ class Parser():
             p[0] = LessEqual(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         else: p[0] = p[1]
 
-    def p_arith(self,p):
-        '''arith : expr PLUS term
-                 | expr MINUS term
-                 | term'''
+    def p_expr_arith(self,p):
+        '''expr : expr PLUS expr
+                | expr MINUS expr
+                | expr STAR expr
+                | expr DIV expr '''
         if len(p) ==4 and p[2] == '+':
             p[0] = PlusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '-':
             p[0] = MinusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-        else: p[0] = p[1]
-
-    def p_term(self,p):
-        '''term : expr STAR unary
-                | expr DIV unary
-                | unary'''
-        if len(p) == 4 and p[2] == '*':
-            p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
+        elif len(p) == 4 and p[2] == '*':
+            p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)    
         elif len(p) == 4 and p[2] == '/':
             p[0] = DivNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-        else: p[0] = p[1]
+        # else: p[0] = p[1]
+
+    # def p_term(self,p):
+    #     '''term : expr STAR unary
+    #             | expr DIV unary
+    #             | unary'''
+    #     if len(p) == 4 and p[2] == '*':
+    #         p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
+    #     elif len(p) == 4 and p[2] == '/':
+    #         p[0] = DivNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
+    #     else: p[0] = p[1]
     
-    def p_unary_factor(self,p):
-        '''unary : factor'''
+    def p_expr_factor(self,p):
+        '''expr : factor'''
         p[0] = p[1]
     
-    def p_unary_negate(self,p):
-        '''unary : NOX unary'''
+    def p_expr_negate(self,p):
+        '''expr : NOX expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = NegateNode(p[2], line, col)
     
-    def p_unary_isvoid(self,p):
-        '''unary : isvoid expr'''
+    def p_expr_isvoid(self,p):
+        '''expr : isvoid expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
