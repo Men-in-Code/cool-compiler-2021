@@ -309,7 +309,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         arg_amount = (len(node.args))*4
 
 
-        self.text_section+= f'move $t0 $sp #call to function {node.method_name}\n'
+        self.text_section+= f'move $t0, $sp #call to function {node.method_name}\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
         # self.text_section+= f'sw $ra, ($sp)\n'
         for i,arg in enumerate(node.args):
@@ -345,7 +345,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.result = result
         ########################################################################
         arg_amount = (len(node.args))*4
-        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'move $t0, $sp\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
         # self.text_section+= f'sw $ra, ($sp)\n'
 
@@ -387,7 +387,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.result = result
         ########################################################################
         arg_amount = (len(node.args)+1)*4
-        self.text_section+= f'move $t0 $sp\n'
+        self.text_section+= f'move $t0, $sp\n'
         self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
         self.text_section+= f'sw $ra, ($sp)\n'
 
@@ -664,7 +664,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'lw $t3, {instance_offset}($sp) #getting instance {node.instance} \n' #Buscar la local que tiene la direccion del heap
 
         if node.attribute == 'self':
-            self.text_section+= f'sw $t3, {result_offset}($sp)'
+            self.text_section+= f'sw $t3, {result_offset}($sp)\n'
         else:
             attr_offset = self.attribute_offset[node.type,node.attribute]
 

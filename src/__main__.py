@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/arith.cl"
+    add = "codegen/hairyscary.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -21,24 +21,32 @@ if __name__ == '__main__':
     with open(_in) as file:
         text = file.read()
 
-    text = ''' 
-    class Main inherits IO {
-        x : Int<- 10;
-        main(): Main
-        { 
-            out_string ( (new A).f().type_name() )
-        };
-    };
-    class A
-    {
-        x: Int <-4;
-        f():Int
-        {
-            let x:Int
-            in x
-        };
-    };
-'''
+#     text = ''' 
+#     class Main inherits IO {
+#         avar : A; 
+
+#         main(): IO
+#         { 
+#             {
+#                 avar <- (new A);
+#                 avar.set_value(10);
+#                 out_int(avar.value());
+#             }
+#         };
+#     };
+#     class A
+#     {
+#         var : Int <- 0;
+#         value() : Int { var };
+#         set_value(x : Int): SELF_TYPE
+#         {
+#             {
+#                 var <- x;
+#                 self;
+#             }
+#         };
+#     };
+# '''
  
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza

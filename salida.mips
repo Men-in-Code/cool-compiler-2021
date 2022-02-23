@@ -67,9 +67,33 @@ Bool_methods:
 .word function_type_name_at_Object
 .word function_copy_at_Object
 
+type_A: .asciiz "A"
+A_methods:
+.word 8
+.word type_A
+.word Object_methods
+.word function_abort_at_Object
+.word function_type_name_at_Object
+.word function_copy_at_Object
+.word function_out_a_at_A
+
+type_C: .asciiz "C"
+C_methods:
+.word 4
+.word type_C
+.word IO_methods
+.word function_abort_at_Object
+.word function_type_name_at_Object
+.word function_copy_at_Object
+.word function_out_string_at_IO
+.word function_out_int_at_IO
+.word function_in_string_at_IO
+.word function_in_int_at_IO
+.word function_out_c_at_C
+
 type_Main: .asciiz "Main"
 Main_methods:
-.word 8
+.word 4
 .word type_Main
 .word IO_methods
 .word function_abort_at_Object
@@ -81,15 +105,20 @@ Main_methods:
 .word function_in_int_at_IO
 .word function_main_at_Main
 
-type_A: .asciiz "A"
-A_methods:
-.word 8
-.word type_A
-.word Object_methods
+type_D: .asciiz "D"
+D_methods:
+.word 4
+.word type_D
+.word C_methods
 .word function_abort_at_Object
 .word function_type_name_at_Object
 .word function_copy_at_Object
-.word function_f_at_A
+.word function_out_string_at_IO
+.word function_out_int_at_IO
+.word function_in_string_at_IO
+.word function_in_int_at_IO
+.word function_out_c_at_C
+.word function_out_d_at_D
 
 
 #DATA_STR
@@ -97,6 +126,10 @@ empty_str_data: .asciiz ""
 void_data: .word 0
 aux_input_string: .space 1028
 
+data_0: .asciiz "A: Hello world\n"
+data_1: .asciiz "C: Hello world\n"
+data_2: .asciiz "Done.\n"
+data_3: .asciiz "D: Hello world\n"
 .text
 jal entry
 
@@ -202,7 +235,7 @@ entry:
 addi, $sp, $sp, -12
 sw $ra, ($sp)
 
-addi $a0, $zero, 8
+addi $a0, $zero, 4
 li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
@@ -210,14 +243,14 @@ move, $t3, $v0
 la $t1,Main_methods
 sw $t1, ($t3)
 sw, $t3, 4($sp)
-move $t0 $sp #call to function init_Main
+move $t0, $sp #call to function init_Main
 addi, $sp, $sp, -4
 lw, $s0, 4($t0) #loading param_local__internal_0
 sw, $s0 0($sp) #setting param for function call
 jal init_Main
 addi, $sp, $sp, 4
 sw $s0, 4($sp) #Saving result on local__internal_0
-move $t0 $sp #call to function main
+move $t0, $sp #call to function main
 addi, $sp, $sp, -4
 lw, $s0, 4($t0) #loading param_local__internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -265,7 +298,7 @@ move, $t3, $v0
 la $t1,String_methods
 sw $t1, ($t3)
 sw, $t3, 4($sp)
-move $t0 $sp #call to function init_String
+move $t0, $sp #call to function init_String
 addi, $sp, $sp, -8
 lw, $s0, 4($t0) #loading param_local_type_name_at_Object_internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -356,7 +389,7 @@ move, $t3, $v0
 la $t1,Int_methods
 sw $t1, ($t3)
 sw, $t3, 8($sp)
-move $t0 $sp #call to function init_Int
+move $t0, $sp #call to function init_Int
 addi, $sp, $sp, -8
 lw, $s0, 8($t0) #loading param_local_length_at_String_internal_1
 sw, $s0 0($sp) #setting param for function call
@@ -433,14 +466,14 @@ beqz $a1,end_loop_concat
 j loop_concat_dirParam
 end_loop_concat:
 sw $t4, 8($sp)
-move $t0 $sp #call to function init_length
+move $t0, $sp #call to function init_length
 addi, $sp, $sp, -4
 lw, $s0, 8($t0) #loading param_local_concat_at_String_internal_1
 sw, $s0 0($sp) #setting param for function call
 jal init_length
 addi, $sp, $sp, 4
 sw $s0, 12($sp) #Saving result on local_concat_at_String_internal_2
-move $t0 $sp #call to function init_String
+move $t0, $sp #call to function init_String
 addi, $sp, $sp, -12
 lw, $s0, 4($t0) #loading param_local_concat_at_String_internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -499,14 +532,14 @@ j loop_substring_dirSelf
 end_loop_substr:
 sb $zero, ($t3)
 sw $t4, 8($sp)
-move $t0 $sp #call to function init_length
+move $t0, $sp #call to function init_length
 addi, $sp, $sp, -4
 lw, $s0, 8($t0) #loading param_local_substr_at_String_internal_1
 sw, $s0 0($sp) #setting param for function call
 jal init_length
 addi, $sp, $sp, 4
 sw $s0, 12($sp) #Saving result on local_substr_at_String_internal_2
-move $t0 $sp #call to function init_String
+move $t0, $sp #call to function init_String
 addi, $sp, $sp, -12
 lw, $s0, 4($t0) #loading param_local_substr_at_String_internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -597,7 +630,7 @@ move, $t3, $v0
 la $t1,Int_methods
 sw $t1, ($t3)
 sw, $t3, 4($sp)
-move $t0 $sp #call to function init_Int
+move $t0, $sp #call to function init_Int
 addi, $sp, $sp, -8
 lw, $s0, 4($t0) #loading param_local_in_int_at_IO_internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -621,7 +654,7 @@ la $a0,aux_input_string
 li $a1,1024
 syscall 
 sw $a0,8($sp)
-move $t0 $sp #call to function init_length
+move $t0, $sp #call to function init_length
 addi, $sp, $sp, -4
 lw, $s0, 8($t0) #loading param_local_in_string_at_IO_internal_1
 sw, $s0 0($sp) #setting param for function call
@@ -657,7 +690,7 @@ move, $t3, $v0
 la $t1,String_methods
 sw $t1, ($t3)
 sw, $t3, 4($sp)
-move $t0 $sp #call to function init_String
+move $t0, $sp #call to function init_String
 addi, $sp, $sp, -12
 lw, $s0, 4($t0) #loading param_local_in_string_at_IO_internal_0
 sw, $s0 0($sp) #setting param for function call
@@ -674,32 +707,27 @@ lw $ra, ($sp)
 addi $sp, $sp,20
 jr $ra
 
-init_Main:
+init_A:
 addi, $sp, $sp, -12
 sw $ra, ($sp)
 
-addi $a0, $zero, 8
+addi $a0, $zero, 4
 li, $v0, 9
 syscall
 blt, $sp, $v0,error_heap
 move, $t3, $v0
-la $t1,Int_methods
+la $t1,IO_methods
 sw $t1, ($t3)
-sw, $t3, 8($sp)
-
-addi, $t1, $zero, 10
-sw, $t1, 4($sp)
-move $t0 $sp #call to function init_Int
-addi, $sp, $sp, -8
-lw, $s0, 8($t0) #loading param_local__internal_1
-sw, $s0 0($sp) #setting param for function call
+sw, $t3, 4($sp)
+move $t0, $sp #call to function init_IO
+addi, $sp, $sp, -4
 lw, $s0, 4($t0) #loading param_local__internal_0
-sw, $s0 4($sp) #setting param for function call
-jal init_Int
-addi, $sp, $sp, 8
+sw, $s0 0($sp) #setting param for function call
+jal init_IO
+addi, $sp, $sp, 4
 sw $s0, 8($sp) #Saving result on local__internal_1
 
-lw, $t1, 8($sp)   
+lw, $t1, 4($sp)   
 lw, $t3, 12($sp)  
 sw, $t1, 4($t3)   
 
@@ -708,8 +736,132 @@ lw $ra, ($sp)
 addi $sp, $sp,12
 jr $ra
 
-function_main_at_Main:
+function_out_a_at_A:
+addi, $sp, $sp, -28
+sw $ra, ($sp)
+
+addi $a0, $zero, 12
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,String_methods
+sw $t1, ($t3)
+sw, $t3, 12($sp)
+
+la $t1, data_0
+sw $t1, 16($sp)
+move $t0, $sp #call to function init_length
+addi, $sp, $sp, -4
+lw, $s0, 16($t0) #loading param_local_out_a_at_A_internal_3
+sw, $s0 0($sp) #setting param for function call
+jal init_length
+addi, $sp, $sp, 4
+sw $s0, 20($sp) #Saving result on local_out_a_at_A_internal_4
+move $t0, $sp #call to function init_String
+addi, $sp, $sp, -12
+lw, $s0, 12($t0) #loading param_local_out_a_at_A_internal_2
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 16($t0) #loading param_local_out_a_at_A_internal_3
+sw, $s0 4($sp) #setting param for function call
+lw, $s0, 20($t0) #loading param_local_out_a_at_A_internal_4
+sw, $s0 8($sp) #setting param for function call
+jal init_String
+addi, $sp, $sp, 12
+sw $s0, 8($sp) #Saving result on local_out_a_at_A_internal_1
+lw $t3, 28($sp) #getting instance self 
+
+lw, $t3, 28($sp) #getting instance self 
+lw, $t1, 4($t3)  #getting offset io 
+sw, $t1, 24($sp)   
+move $t0, $sp
+addi, $sp, $sp, -8
+lw, $s0, 24($t0)
+sw, $s0 0($sp)
+lw, $s0, 12($t0)
+sw, $s0 4($sp)
+lw $a0, 24($t0)
+la $t1, void_data
+beq $a0, $t1, error_call_void
+lw $a1, ($a0)
+lw $a2, 24($a1)
+jalr $a2
+addi, $sp, $sp, 8
+sw $s0, 4($sp)
+
+lw $s0, 4($sp)
+lw $ra, ($sp)
+addi $sp, $sp,28
+jr $ra
+
+init_C:
+addi, $sp, $sp, -4
+sw $ra, ($sp)
+
+lw $s0, 4($sp)
+lw $ra, ($sp)
+addi $sp, $sp,4
+jr $ra
+
+function_out_c_at_C:
 addi, $sp, $sp, -24
+sw $ra, ($sp)
+
+addi $a0, $zero, 12
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,String_methods
+sw $t1, ($t3)
+sw, $t3, 12($sp)
+
+la $t1, data_1
+sw $t1, 16($sp)
+move $t0, $sp #call to function init_length
+addi, $sp, $sp, -4
+lw, $s0, 16($t0) #loading param_local_out_c_at_C_internal_3
+sw, $s0 0($sp) #setting param for function call
+jal init_length
+addi, $sp, $sp, 4
+sw $s0, 20($sp) #Saving result on local_out_c_at_C_internal_4
+move $t0, $sp #call to function init_String
+addi, $sp, $sp, -12
+lw, $s0, 12($t0) #loading param_local_out_c_at_C_internal_2
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 16($t0) #loading param_local_out_c_at_C_internal_3
+sw, $s0 4($sp) #setting param for function call
+lw, $s0, 20($t0) #loading param_local_out_c_at_C_internal_4
+sw, $s0 8($sp) #setting param for function call
+jal init_String
+addi, $sp, $sp, 12
+sw $s0, 8($sp) #Saving result on local_out_c_at_C_internal_1
+move $t0, $sp #call to function out_string
+addi, $sp, $sp, -8
+lw, $s0, 24($t0) #loading param_self
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 12($t0) #loading param_local_out_c_at_C_internal_2
+sw, $s0 4($sp) #setting param for function call
+jal function_out_string_at_IO
+addi, $sp, $sp, 8
+sw $s0, 4($sp) #Saving result on local_out_c_at_C_internal_0
+
+lw $s0, 4($sp)
+lw $ra, ($sp)
+addi $sp, $sp,24
+jr $ra
+
+init_Main:
+addi, $sp, $sp, -4
+sw $ra, ($sp)
+
+lw $s0, 4($sp)
+lw $ra, ($sp)
+addi $sp, $sp,4
+jr $ra
+
+function_main_at_Main:
+addi, $sp, $sp, -60
 sw $ra, ($sp)
 
 addi $a0, $zero, 8
@@ -719,115 +871,180 @@ blt, $sp, $v0,error_heap
 move, $t3, $v0
 la $t1,A_methods
 sw $t1, ($t3)
-sw, $t3, 16($sp)
-move $t0 $sp #call to function init_A
+sw, $t3, 8($sp)
+move $t0, $sp #call to function init_A
 addi, $sp, $sp, -4
-lw, $s0, 16($t0) #loading param_local_main_at_Main_internal_3
+lw, $s0, 8($t0) #loading param_local_main_at_Main_internal_1
 sw, $s0 0($sp) #setting param for function call
 jal init_A
 addi, $sp, $sp, 4
-sw $s0, 20($sp) #Saving result on local_main_at_Main_internal_4
-move $t0 $sp
+sw $s0, 12($sp) #Saving result on local_main_at_Main_internal_2
+move $t0, $sp
 addi, $sp, $sp, -4
-lw, $s0, 16($t0)
+lw, $s0, 8($t0)
 sw, $s0 0($sp)
-lw $a0, 16($t0)
+lw $a0, 8($t0)
 la $t1, void_data
 beq $a0, $t1, error_call_void
 lw $a1, ($a0)
 lw $a2, 24($a1)
 jalr $a2
 addi, $sp, $sp, 4
-sw $s0, 12($sp)
-move $t0 $sp
+sw $s0, 4($sp)
+
+addi $a0, $zero, 4
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,C_methods
+sw $t1, ($t3)
+sw, $t3, 20($sp)
+move $t0, $sp #call to function init_C
 addi, $sp, $sp, -4
-lw, $s0, 12($t0)
+lw, $s0, 20($t0) #loading param_local_main_at_Main_internal_4
+sw, $s0 0($sp) #setting param for function call
+jal init_C
+addi, $sp, $sp, 4
+sw $s0, 24($sp) #Saving result on local_main_at_Main_internal_5
+move $t0, $sp
+addi, $sp, $sp, -4
+lw, $s0, 20($t0)
 sw, $s0 0($sp)
-lw $a0, 12($t0)
+lw $a0, 20($t0)
 la $t1, void_data
 beq $a0, $t1, error_call_void
 lw $a1, ($a0)
-lw $a2, 16($a1)
+lw $a2, 40($a1)
 jalr $a2
 addi, $sp, $sp, 4
-sw $s0, 8($sp)
-move $t0 $sp #call to function out_string
-addi, $sp, $sp, -8
-lw, $s0, 24($t0) #loading param_self
+sw $s0, 16($sp)
+
+addi $a0, $zero, 4
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,D_methods
+sw $t1, ($t3)
+sw, $t3, 32($sp)
+move $t0, $sp #call to function init_D
+addi, $sp, $sp, -4
+lw, $s0, 32($t0) #loading param_local_main_at_Main_internal_7
 sw, $s0 0($sp) #setting param for function call
-lw, $s0, 8($t0) #loading param_local_main_at_Main_internal_1
+jal init_D
+addi, $sp, $sp, 4
+sw $s0, 36($sp) #Saving result on local_main_at_Main_internal_8
+move $t0, $sp
+addi, $sp, $sp, -4
+lw, $s0, 32($t0)
+sw, $s0 0($sp)
+lw $a0, 32($t0)
+la $t1, void_data
+beq $a0, $t1, error_call_void
+lw $a1, ($a0)
+lw $a2, 44($a1)
+jalr $a2
+addi, $sp, $sp, 4
+sw $s0, 28($sp)
+
+addi $a0, $zero, 12
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,String_methods
+sw $t1, ($t3)
+sw, $t3, 48($sp)
+
+la $t1, data_2
+sw $t1, 52($sp)
+move $t0, $sp #call to function init_length
+addi, $sp, $sp, -4
+lw, $s0, 52($t0) #loading param_local_main_at_Main_internal_12
+sw, $s0 0($sp) #setting param for function call
+jal init_length
+addi, $sp, $sp, 4
+sw $s0, 56($sp) #Saving result on local_main_at_Main_internal_13
+move $t0, $sp #call to function init_String
+addi, $sp, $sp, -12
+lw, $s0, 48($t0) #loading param_local_main_at_Main_internal_11
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 52($t0) #loading param_local_main_at_Main_internal_12
+sw, $s0 4($sp) #setting param for function call
+lw, $s0, 56($t0) #loading param_local_main_at_Main_internal_13
+sw, $s0 8($sp) #setting param for function call
+jal init_String
+addi, $sp, $sp, 12
+sw $s0, 44($sp) #Saving result on local_main_at_Main_internal_10
+move $t0, $sp #call to function out_string
+addi, $sp, $sp, -8
+lw, $s0, 60($t0) #loading param_self
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 48($t0) #loading param_local_main_at_Main_internal_11
 sw, $s0 4($sp) #setting param for function call
 jal function_out_string_at_IO
 addi, $sp, $sp, 8
-sw $s0, 4($sp) #Saving result on local_main_at_Main_internal_0
+sw $s0, 40($sp) #Saving result on local_main_at_Main_internal_9
+
+lw $s0, 40($sp)
+lw $ra, ($sp)
+addi $sp, $sp,60
+jr $ra
+
+init_D:
+addi, $sp, $sp, -4
+sw $ra, ($sp)
+
+lw $s0, 4($sp)
+lw $ra, ($sp)
+addi $sp, $sp,4
+jr $ra
+
+function_out_d_at_D:
+addi, $sp, $sp, -24
+sw $ra, ($sp)
+
+addi $a0, $zero, 12
+li, $v0, 9
+syscall
+blt, $sp, $v0,error_heap
+move, $t3, $v0
+la $t1,String_methods
+sw $t1, ($t3)
+sw, $t3, 12($sp)
+
+la $t1, data_3
+sw $t1, 16($sp)
+move $t0, $sp #call to function init_length
+addi, $sp, $sp, -4
+lw, $s0, 16($t0) #loading param_local_out_d_at_D_internal_3
+sw, $s0 0($sp) #setting param for function call
+jal init_length
+addi, $sp, $sp, 4
+sw $s0, 20($sp) #Saving result on local_out_d_at_D_internal_4
+move $t0, $sp #call to function init_String
+addi, $sp, $sp, -12
+lw, $s0, 12($t0) #loading param_local_out_d_at_D_internal_2
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 16($t0) #loading param_local_out_d_at_D_internal_3
+sw, $s0 4($sp) #setting param for function call
+lw, $s0, 20($t0) #loading param_local_out_d_at_D_internal_4
+sw, $s0 8($sp) #setting param for function call
+jal init_String
+addi, $sp, $sp, 12
+sw $s0, 8($sp) #Saving result on local_out_d_at_D_internal_1
+move $t0, $sp #call to function out_string
+addi, $sp, $sp, -8
+lw, $s0, 24($t0) #loading param_self
+sw, $s0 0($sp) #setting param for function call
+lw, $s0, 12($t0) #loading param_local_out_d_at_D_internal_2
+sw, $s0 4($sp) #setting param for function call
+jal function_out_string_at_IO
+addi, $sp, $sp, 8
+sw $s0, 4($sp) #Saving result on local_out_d_at_D_internal_0
 
 lw $s0, 4($sp)
 lw $ra, ($sp)
 addi $sp, $sp,24
-jr $ra
-
-init_A:
-addi, $sp, $sp, -12
-sw $ra, ($sp)
-
-addi $a0, $zero, 8
-li, $v0, 9
-syscall
-blt, $sp, $v0,error_heap
-move, $t3, $v0
-la $t1,Int_methods
-sw $t1, ($t3)
-sw, $t3, 8($sp)
-
-addi, $t1, $zero, 4
-sw, $t1, 4($sp)
-move $t0 $sp #call to function init_Int
-addi, $sp, $sp, -8
-lw, $s0, 8($t0) #loading param_local__internal_1
-sw, $s0 0($sp) #setting param for function call
-lw, $s0, 4($t0) #loading param_local__internal_0
-sw, $s0 4($sp) #setting param for function call
-jal init_Int
-addi, $sp, $sp, 8
-sw $s0, 8($sp) #Saving result on local__internal_1
-
-lw, $t1, 8($sp)   
-lw, $t3, 12($sp)  
-sw, $t1, 4($t3)   
-
-lw $s0, 12($sp)
-lw $ra, ($sp)
-addi $sp, $sp,12
-jr $ra
-
-function_f_at_A:
-addi, $sp, $sp, -20
-sw $ra, ($sp)
-
-addi, $t1, $zero, 0
-sw, $t1, 8($sp)
-
-addi $a0, $zero, 8
-li, $v0, 9
-syscall
-blt, $sp, $v0,error_heap
-move, $t3, $v0
-la $t1,Int_methods
-sw $t1, ($t3)
-sw, $t3, 12($sp)
-move $t0 $sp #call to function init_Int
-addi, $sp, $sp, -8
-lw, $s0, 12($t0) #loading param_local_f_at_A_internal_2
-sw, $s0 0($sp) #setting param for function call
-lw, $s0, 8($t0) #loading param_local_f_at_A_internal_1
-sw, $s0 4($sp) #setting param for function call
-jal init_Int
-addi, $sp, $sp, 8
-sw $s0, 12($sp) #Saving result on local_f_at_A_internal_2
-lw $t1, 12($sp)
-sw $t1, 4($sp)
-
-lw $s0, 4($sp)
-lw $ra, ($sp)
-addi $sp, $sp,20
 jr $ra

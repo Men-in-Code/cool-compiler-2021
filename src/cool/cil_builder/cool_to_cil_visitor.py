@@ -18,6 +18,7 @@ class BaseCOOLToCILVisitor:
         self.current_method = None
         self.current_function = None
         self.current_type_dir = None
+        self.type_node_dict = None
         self.context = context
         self.label_id = 0
         self.tag_id = 0
@@ -97,6 +98,12 @@ class BaseCOOLToCILVisitor:
     def create_tag(self):
         self.tag_id += 1
         return self.tag_id - 1
+
+    def get_parentAttr_declarations(self,programNode):
+        for classNode in ProgramNode.declarations:
+            if classNode.parent is not None:
+                parent_node = self.type_node_dict[classNode.name]
+                a = (feature for feature in parent_node)
 
     def generateTree(self):
         classList = {}
@@ -348,6 +355,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.fill_builtin()
         self.enumerateTypes() 
 
+        for declaration in node.declarations:
+            self.type_node_dict[declaration.name] = declaration
+        
+        # self.get_parentAttr_declarations()
+
+
         for declaration, child_scope in zip(node.declarations, scope.children):
             self.visit(declaration, child_scope)
         self.fill_cil_types(self.context)
@@ -428,7 +441,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             result = self.visit(node.expr,scope)
             self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
         else:
-            self.set_default_values(self,node)
+            self.set_default_values(node)
 
 
     @visitor.when(ConstantNumNode) #7.1 Constant
@@ -519,7 +532,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             self.register_instruction(cil.SetAttribCilNode('self',self.current_type.name,node.id,source))
             dest = node.id
             
-        return dest
+        return source
 
     @visitor.when(CallNode) #7.4 Dispatch
     def visit(self, node, scope):
