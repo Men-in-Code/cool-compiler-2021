@@ -214,8 +214,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_arith(self,p):
-        '''arith : expr PLUS term
-                 | expr MINUS term
+        '''arith : arith PLUS term
+                 | arith MINUS term
                  | term'''
         if len(p) ==4 and p[2] == '+':
             p[0] = PlusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
@@ -224,8 +224,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_term(self,p):
-        '''term : expr STAR unary
-                | expr DIV unary
+        '''term : term STAR unary
+                | term DIV unary
                 | unary'''
         if len(p) == 4 and p[2] == '*':
             p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
