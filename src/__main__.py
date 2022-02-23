@@ -21,32 +21,37 @@ if __name__ == '__main__':
     with open(_in) as file:
         text = file.read()
 
-#     text = ''' 
-#     class Main inherits IO {
-#         avar : A; 
+    text = '''
+    class Main inherits IO 
+    {
+        var_1 : Int <- 10; 
+        var_2 : Int <- 20; 
+        var_3 : Int <- 30; 
+        var_4 : Int <- 40; 
 
-#         main(): IO
-#         { 
-#             {
-#                 avar <- (new A);
-#                 avar.set_value(10);
-#                 out_int(avar.value());
-#             }
-#         };
-#     };
-#     class A
-#     {
-#         var : Int <- 0;
-#         value() : Int { var };
-#         set_value(x : Int): SELF_TYPE
-#         {
-#             {
-#                 var <- x;
-#                 self;
-#             }
-#         };
-#     };
-# '''
+        main(): IO
+        { 
+            {
+                var_1;
+                out_int(0);
+            }
+        };
+    };
+
+    class A inherits Main
+    {   
+        var_5 : Int <- 50; 
+        var_6 : Int <- 60; 
+        var_7 : Int <- 70; 
+        var_8 : Int <- 80; 
+
+        set_value(x : Int): Int
+        {
+            var_1
+        };
+    };
+'''
+
  
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza

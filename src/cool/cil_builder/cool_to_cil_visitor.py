@@ -1,4 +1,3 @@
-from markupsafe import string
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
@@ -18,7 +17,7 @@ class BaseCOOLToCILVisitor:
         self.current_method = None
         self.current_function = None
         self.current_type_dir = None
-        self.type_node_dict = None
+        self.type_node_dict = {}
         self.context = context
         self.label_id = 0
         self.tag_id = 0
@@ -100,10 +99,27 @@ class BaseCOOLToCILVisitor:
         return self.tag_id - 1
 
     def get_parentAttr_declarations(self,programNode):
-        for classNode in ProgramNode.declarations:
-            if classNode.parent is not None:
-                parent_node = self.type_node_dict[classNode.name]
-                a = (feature for feature in parent_node)
+        for classNode in programNode.declarations:
+            class_type = self.context.get_type(classNode.id)
+            # class_parent = class_type.parent
+            attr_list = self.put_attr_on_type(class_type)
+
+            self.type_node_dict[class_type.name].features = attr_list + self.type_node_dict[class_type.name].features
+
+                
+
+    def put_attr_on_type(self,type_):
+        parent_ = self.context.get_type(type_.name).parent
+        
+        if parent_.name == 'Object' or parent_.name == 'IO':
+            return []
+        else:
+            list_attr = [attr for attr in self.type_node_dict[parent_.name].features if isinstance(attr,AttrDeclarationNode)]
+            return list_attr+ self.put_attr_on_type(parent_)
+            
+
+
+            
 
     def generateTree(self):
         classList = {}
@@ -356,9 +372,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.enumerateTypes() 
 
         for declaration in node.declarations:
-            self.type_node_dict[declaration.name] = declaration
+            self.type_node_dict[declaration.id] = declaration
         
-        # self.get_parentAttr_declarations()
+        self.get_parentAttr_declarations(node)
 
 
         for declaration, child_scope in zip(node.declarations, scope.children):
