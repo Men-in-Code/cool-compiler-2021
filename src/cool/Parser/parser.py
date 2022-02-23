@@ -148,42 +148,42 @@ class Parser():
         p[0] = VarDeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_expr_let(self,p):
-        '''expr : let declar_list in expr'''
+        '''atom : let declar_list in expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = LetNode(p[2],p[4], line, col)
 
     def p_expr_while(self,p):
-        '''expr : while expr loop expr pool'''
+        '''atom : while expr loop expr pool'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = WhileNode(p[2], p[4], line, col)
 
     def p_expr_if(self,p):
-        '''expr : if expr then expr else expr fi'''
+        '''atom : if expr then expr else expr fi'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] =  IfNode(p[2],p[4],p[6], line, col)
 
     def p_expr_case(self,p):
-        '''expr : case expr of assign_list esac'''
+        '''atom : case expr of assign_list esac'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = CaseNode(p[2], p[4], line, col)
     
     def p_expr_group(self,p):
-        '''expr : OCUR expr_list CCUR'''
+        '''atom : OCUR expr_list CCUR'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = ExpressionGroupNode(p[2], line, col)
 
     def p_expr_assign(self,p):
-        '''expr : ID LARROW expr'''
+        '''atom : ID LARROW expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
@@ -214,8 +214,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_arith(self,p):
-        '''arith : expr PLUS term
-                 | expr MINUS term
+        '''arith : arith PLUS term
+                 | arith MINUS term
                  | term'''
         if len(p) ==4 and p[2] == '+':
             p[0] = PlusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
@@ -224,8 +224,8 @@ class Parser():
         else: p[0] = p[1]
 
     def p_term(self,p):
-        '''term : expr STAR unary
-                | expr DIV unary
+        '''term : term STAR unary
+                | term DIV unary
                 | unary'''
         if len(p) == 4 and p[2] == '*':
             p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)

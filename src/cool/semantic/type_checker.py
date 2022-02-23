@@ -279,11 +279,19 @@ class TypeChecker:
                 error = TypeError(node.column, node.row, text)
                 self.errors.append(error)
                 node_type = ErrorType()
+        
         else:
-            text = VARIABLE_NOT_DEFINED.replace('%s', node.id, 1)
-            error = NameError(node.column,node.row,text)
-            self.errors.append(error)
-            node_type = ErrorType()
+            try:
+                var = self.current_type.get_attribute(node.id)
+                node_type = self.context.get_type(var.type.name)
+            except SemanticException as ex:
+                # node_type = ErrorType()
+                # error = NameError(node.column,node.row,ex.text)
+                # self.errors.append(error)
+                text = VARIABLE_NOT_DEFINED.replace('%s', node.id, 1)
+                error = NameError(node.column,node.row,text)
+                self.errors.append(error)
+                node_type = ErrorType()
 
         node.computed_type = node_type
     
@@ -433,7 +441,6 @@ class TypeChecker:
                 var = self.current_type.get_attribute(node.lex)
                 node_type = self.context.get_type(var.type.name)
             except SemanticException as ex:
-                # text = f'In class {self.current_type.name}: '+ VARIABLE_NOT_DEFINED.replace('%s', node.lex, 1).replace('%s', self.current_feature.name, 1)
                 node_type = ErrorType()
                 error = NameError(node.column,node.row,ex.text)
                 self.errors.append(error)

@@ -4,14 +4,14 @@ from cool.lexer.lexer import Lexer, main
 from cool.utils.LexerTokens import *
 from cool.Parser.parser import Parser
 from cool.semantic.semanticAnalizer import run_semantic_pipeline
-from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
+# from cool.cil_builder.cilAnalizer import run_code_gen_pipeline
 
 import os.path
 from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/hairyscary.cl"
+    add = "codegen/life.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -74,6 +74,6 @@ if __name__ == '__main__':
         raise Exception()
 
     context,scope = run_semantic_pipeline(ast)
-    mips_output = run_code_gen_pipeline(ast,context,scope)
+    # mips_output = run_code_gen_pipeline(ast,context,scope)
     # mips_output = run_mips_gen_pipeline(cil_ast,context,scope)
 
