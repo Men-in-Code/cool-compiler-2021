@@ -18,17 +18,17 @@ class Parser():
                                 debuglog=None,
                                 errorlog=None, )
 
-    precedence = (
-        ('right', 'LARROW'),
-        ('right', 'not'),
-        ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
-        ('left', 'PLUS', 'MINUS'),
-        ('left', 'STAR', 'DIV'),
-        ('right', 'isvoid'),
-        ('right', 'NOX'),
-        ('left', 'ARROBA'),
-        ('left', 'DOT')
-    )
+    # precedence = (
+    #     ('right', 'LARROW'),
+    #     ('right', 'not'),
+    #     ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
+    #     ('left', 'PLUS', 'MINUS'),
+    #     ('left', 'STAR', 'DIV'),
+    #     ('right', 'isvoid'),
+    #     # ('right', 'INT_COMP'),
+    #     # ('left', 'AT'),
+    #     ('left', 'DOT')
+    # )
 
     def parse(self, program, debug=False):
         self.found_error = False
@@ -148,63 +148,63 @@ class Parser():
         p[0] = VarDeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_expr_let(self,p):
-        '''expr : let declar_list in expr'''
+        '''atom : let declar_list in expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = LetNode(p[2],p[4], line, col)
 
     def p_expr_while(self,p):
-        '''expr : while expr loop expr pool'''
+        '''atom : while expr loop expr pool'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = WhileNode(p[2], p[4], line, col)
 
     def p_expr_if(self,p):
-        '''expr : if expr then expr else expr fi'''
+        '''atom : if expr then expr else expr fi'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] =  IfNode(p[2],p[4],p[6], line, col)
 
     def p_expr_case(self,p):
-        '''expr : case expr of assign_list esac'''
+        '''atom : case expr of assign_list esac'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = CaseNode(p[2], p[4], line, col)
     
     def p_expr_group(self,p):
-        '''expr : OCUR expr_list CCUR'''
+        '''atom : OCUR expr_list CCUR'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = ExpressionGroupNode(p[2], line, col)
 
     def p_expr_assign(self,p):
-        '''expr : ID LARROW expr'''
+        '''atom : ID LARROW expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = AssignNode(p[1],p[3], line, col)
 
     def p_expr_boolean(self,p):
-        '''expr : not expr
-                | expr '''
+        '''expr : boolean'''
         p[0] = p[1]
     
-    # def p_boolean(self,p):
-    #     '''boolean : not comparison
-    #                | comparison'''
-    #     # col = self.lexer.get_column(p.slice[1])
-    #     line = p.lineno(1)
-    #     p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
+    def p_boolean(self,p):
+        '''boolean : not comparison
+                   | comparison'''
+        # col = self.lexer.get_column(p.slice[1])
+        line = p.lineno(1)
+        p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
 
-    def p_expr_comparison(self,p):
-        '''expr : expr EQUAL expr
-                    | expr LESS expr
-                    | expr LESSEQ expr'''
+    def p_comparison(self,p):
+        '''comparison : comparison EQUAL boolean
+                      | comparison LESS boolean
+                      | comparison LESSEQ boolean 
+                      | arith'''
         if len(p) ==4 and p[2] == '=':
             p[0] = EqualNode(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '<':
@@ -213,44 +213,39 @@ class Parser():
             p[0] = LessEqual(p.slice[2], p[1],p[3], p.lineno(2), p.slice[2].column)
         else: p[0] = p[1]
 
-    def p_expr_arith(self,p):
-        '''expr : expr PLUS expr
-                | expr MINUS expr
-                | expr STAR expr
-                | expr DIV expr '''
+    def p_arith(self,p):
+        '''arith : expr PLUS term
+                 | expr MINUS term
+                 | term'''
         if len(p) ==4 and p[2] == '+':
             p[0] = PlusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         elif len(p) ==4 and p[2] == '-':
             p[0] = MinusNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-        elif len(p) == 4 and p[2] == '*':
-            p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)    
+        else: p[0] = p[1]
+
+    def p_term(self,p):
+        '''term : expr STAR unary
+                | expr DIV unary
+                | unary'''
+        if len(p) == 4 and p[2] == '*':
+            p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
         elif len(p) == 4 and p[2] == '/':
             p[0] = DivNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-        # else: p[0] = p[1]
-
-    # def p_term(self,p):
-    #     '''term : expr STAR unary
-    #             | expr DIV unary
-    #             | unary'''
-    #     if len(p) == 4 and p[2] == '*':
-    #         p[0] = StarNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-    #     elif len(p) == 4 and p[2] == '/':
-    #         p[0] = DivNode(p.slice[2], p[1], p[3], p.lineno(2), p.slice[2].column)
-    #     else: p[0] = p[1]
+        else: p[0] = p[1]
     
-    def p_expr_factor(self,p):
-        '''expr : factor'''
+    def p_unary_factor(self,p):
+        '''unary : factor'''
         p[0] = p[1]
     
-    def p_expr_negate(self,p):
-        '''expr : NOX expr'''
+    def p_unary_negate(self,p):
+        '''unary : NOX unary'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = NegateNode(p[2], line, col)
     
-    def p_expr_isvoid(self,p):
-        '''expr : isvoid expr'''
+    def p_unary_isvoid(self,p):
+        '''unary : isvoid expr'''
         # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
