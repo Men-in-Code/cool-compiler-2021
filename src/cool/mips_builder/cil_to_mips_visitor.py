@@ -659,15 +659,20 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
             # node.attribute = attribute
             # node.result = result
         #######################################
-        attr_offset = self.attribute_offset[node.type,node.attribute]
-        instance_offset = self.var_offset[self.current_function.name,node.instance]
         result_offset = self.var_offset[self.current_function.name,node.result]
+        instance_offset = self.var_offset[self.current_function.name,node.instance]
+        self.text_section+= f'lw $t3, {instance_offset}($sp) #getting instance {node.instance} \n' #Buscar la local que tiene la direccion del heap
 
-        # (instance_offset+attr_offset)
-        self.text_section += '\n'
-        self.text_section+= f'lw, $t3, {instance_offset}($sp) #getting instance {node.instance} \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'lw, $t1, {attr_offset}($t3)  #getting offset {node.attribute} \n' #Cargar en un registro el valor del atributo
-        self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
+        if node.attribute == 'self':
+            self.text_section+= f'sw $t3, {result_offset}($sp)'
+        else:
+            attr_offset = self.attribute_offset[node.type,node.attribute]
+
+            # (instance_offset+attr_offset)
+            self.text_section += '\n'
+            self.text_section+= f'lw, $t3, {instance_offset}($sp) #getting instance {node.instance} \n' #Buscar la local que tiene la direccion del heap
+            self.text_section+= f'lw, $t1, {attr_offset}($t3)  #getting offset {node.attribute} \n' #Cargar en un registro el valor del atributo
+            self.text_section+= f'sw, $t1, {result_offset}($sp)   \n' #Guardo el valor 
 
     @visitor.when(SetAttribCilNode)
     def visit(self,node):

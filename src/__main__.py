@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "lexer/iis4.cl"
+    add = "codegen/arith.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -23,16 +23,23 @@ if __name__ == '__main__':
 
     text = ''' 
     class Main inherits IO {
-        x : String;
-        main(): IO
+        x : Int<- 10;
+        main(): Main
         { 
-            {
-                x <- in_string();
-                out_string(x);
-            }
+            out_string ( (new A).f().type_name() )
+        };
+    };
+    class A
+    {
+        x: Int <-4;
+        f():Int
+        {
+            let x:Int
+            in x
         };
     };
 '''
+ 
 
     lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
     tokens = lexer.tokenize()

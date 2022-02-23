@@ -115,6 +115,36 @@ class BaseCOOLToCILVisitor:
             for child in Node:
                 child.class_tag = self.create_tag()
 
+    def set_default_values(self,node):
+        class_dir = self.current_type_dir
+        if node.type == 'Int':
+            int_internal = self.define_internal_local()
+            result_location = self.define_internal_local()
+            self.register_instruction(cil.IntCilNode(0,int_internal))
+            self.register_instruction(cil.AllocateCilNode('Int',result_location))
+            self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result_location))
+            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
+        elif node.type == 'String':
+            result_location = self.define_internal_local()
+            data_location = self.define_internal_local()
+            len_str = self.define_internal_local()
+            self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
+            self.register_instruction(cil.GetDataCilNode('empty_str_data',data_location)) #Paso al sp en una local interna el data
+            self.register_instruction(cil.IntCilNode(0,len_str))
+            self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,len_str],result_location)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
+            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
+        elif node.type == 'Bool':
+            bool_internal = self.define_internal_local()
+            result_location = self.define_internal_local()
+            self.register_instruction(cil.IntCilNode(0,bool_internal))
+            self.register_instruction(cil.AllocateCilNode('Bool',result_location))
+            self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,bool_internal],result_location))
+            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
+        else:
+            void_location = self.define_internal_local()
+            self.register_instruction(cil.GetDataCilNode('void_data',void_location))
+            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,void_location))
+
 
     def fill_builtin(self):
         built_in_types = [
@@ -398,33 +428,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             result = self.visit(node.expr,scope)
             self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
         else:
-            if node.type == 'Int':
-                int_internal = self.define_internal_local()
-                result_location = self.define_internal_local()
-                self.register_instruction(cil.IntCilNode(0,int_internal))
-                self.register_instruction(cil.AllocateCilNode('Int',result_location))
-                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result_location))
-                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
-            elif node.type == 'String':
-                result_location = self.define_internal_local()
-                data_location = self.define_internal_local()
-                len_str = self.define_internal_local()
-                self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
-                self.register_instruction(cil.GetDataCilNode('empty_str_data',data_location)) #Paso al sp en una local interna el data
-                self.register_instruction(cil.IntCilNode(0,len_str))
-                self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,len_str],result_location)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
-                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
-            elif node.type == 'Bool':
-                bool_internal = self.define_internal_local()
-                result_location = self.define_internal_local()
-                self.register_instruction(cil.IntCilNode(0,bool_internal))
-                self.register_instruction(cil.AllocateCilNode('Bool',result_location))
-                self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,bool_internal],result_location))
-                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result_location))
-            else:
-                void_location = self.define_internal_local()
-                self.register_instruction(cil.GetDataCilNode('void_data',void_location))
-                self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,void_location))
+            self.set_default_values(self,node)
 
 
     @visitor.when(ConstantNumNode) #7.1 Constant
@@ -513,7 +517,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             self.register_instruction(cil.AssignCilNode(dest,source))
         else: #attribute
             self.register_instruction(cil.SetAttribCilNode('self',self.current_type.name,node.id,source))
-            dest = source
+            dest = node.id
             
         return dest
 
@@ -577,7 +581,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.body = ExpressionNode
         ###############################
         result_while = self.define_internal_local()
-        # self.register_instruction(cil.AssignCilNode())
         label_start = self.create_label()
         label_end = self.create_label()
         self.register_instruction(cil.LabelCilNode(label_start))
@@ -621,8 +624,36 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.expr = ExpresionNode
         ###############################
         var_created = self.register_local(VariableInfo(node.id,node.type),scope)
-        expr_result = self.visit(node.expr,scope)
-        self.register_instruction(cil.AssignCilNode(var_created,expr_result))
+
+        if node.expr is None:
+            if node.type == 'Int':
+                int_internal = self.define_internal_local()
+                result_location = self.define_internal_local()
+                self.register_instruction(cil.IntCilNode(0,int_internal))
+                self.register_instruction(cil.AllocateCilNode('Int',result_location))
+                self.register_instruction(cil.StaticCallCilNode('Int','init_Int',[result_location,int_internal],result_location))
+            elif node.type == 'String':
+                result_location = self.define_internal_local()
+                data_location = self.define_internal_local()
+                len_str = self.define_internal_local()
+                self.register_instruction(cil.AllocateCilNode('String',result_location)) #Creo el espacio en memoria para guardar el String (Method_dir,String_value,Length)
+                self.register_instruction(cil.GetDataCilNode('empty_str_data',data_location)) #Paso al sp en una local interna el data
+                self.register_instruction(cil.IntCilNode(0,len_str))
+                self.register_instruction(cil.StaticCallCilNode('String','init_String',[result_location,data_location,len_str],result_location)) #LLamo al init del string y lo relleno con los valores que se calcularon de: [Direccion de string val],  [Len del string] 
+            elif node.type == 'Bool':
+                bool_internal = self.define_internal_local()
+                result_location = self.define_internal_local()
+                self.register_instruction(cil.IntCilNode(0,bool_internal))
+                self.register_instruction(cil.AllocateCilNode('Bool',result_location))
+                self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result_location,bool_internal],result_location))
+            else:
+                result_location = self.define_internal_local()
+                self.register_instruction(cil.GetDataCilNode('void_data',result_location))
+
+            self.register_instruction(cil.AssignCilNode(var_created,result_location))
+        else:
+            expr_result = self.visit(node.expr,scope)
+            self.register_instruction(cil.AssignCilNode(var_created,expr_result))
         return var_created
 
 
