@@ -311,8 +311,8 @@ class TypeChecker:
                     for _,params in enumerate(zip(node.args, obj_method.param_types)):
                         arg, param_type = params
                         try:
-                            # if arg.row == 27:
-                            #     print("aki")
+                            if arg.row == 27:
+                                print("aki")
                             self.visit(arg, scope,param_type.name)
                             arg_type = arg.computed_type
                         except SemanticException as ex:
@@ -321,7 +321,9 @@ class TypeChecker:
                             error = SemanticError(node.column,node.row,text)
                             self.errors.append(error)
 
-                        if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
+                        # if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
+                        if not arg_type.conforms_to(param_type):
+
                             try:
                                 name_arg=arg.lex
                             except:

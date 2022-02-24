@@ -47,7 +47,7 @@ if __name__ == '__main__':
 #                         var_101:A <- new A
 #                     in 
 #                     {
-#                         out_int(var_101);
+#                         out_string(var_101);
 #                         var_101<-new B;
 #                     };
 #                     out_string(var_101.type_name());
