@@ -21,45 +21,7 @@ if __name__ == '__main__':
     with open(_in) as file:
         text = file.read()
 
-#     text = '''
-#     class Main inherits IO 
-#     {
-#         i : Int <- 10;
-#         main(): Object
-#         { 
-#             {
-#             let i:Int <- i + 1,
-#                 h:B <- new B
-#             in
-#             {
-#                 i <- case h of
-#                 x : A => x.f(i);
-#                 x : B => x.f(i);
-#                 esac;
-#                 out_int(i);
-#                 out_string(" ");
-#                 out_int(h@A.f(i));
-#             };
 
-#             }
-#         };
-#     };
-
-#     class A inherits Main
-#     {   
-#         f(x:Int):Int 
-#         {
-#             x + 1
-#         };
-#     };
-#     class B inherits A
-#     {   
-#         f(x:Int):Int 
-#         {
-#             x+100
-#         };
-#     };
-# '''
 
  
 

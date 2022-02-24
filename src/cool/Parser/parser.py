@@ -18,26 +18,9 @@ class Parser():
                                 debuglog=None,
                                 errorlog=None, )
 
-    # precedence = (
-    #     ('right', 'LARROW'),
-    #     ('right', 'not'),
-    #     ('nonassoc', 'LESSEQ', 'LESS', 'EQUAL'),
-    #     ('left', 'PLUS', 'MINUS'),
-    #     ('left', 'STAR', 'DIV'),
-    #     ('right', 'isvoid'),
-    #     # ('right', 'INT_COMP'),
-    #     # ('left', 'AT'),
-    #     ('left', 'DOT')
-    # )
-
     def parse(self, program, debug=False):
         self.found_error = False
         return self.parser.parse(program, self.lexer.lexer)
-
-    # def show_errors(self):
-    #     # print(self.errors[0])
-    #     # for e in self.errors:
-    #     #     print(e)
 
     def p_empty(self,p):
         'empty :'

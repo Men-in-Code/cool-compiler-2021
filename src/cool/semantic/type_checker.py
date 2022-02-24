@@ -1,4 +1,3 @@
-from pydoc import text
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
@@ -83,17 +82,12 @@ class TypeChecker:
             try:
                 if not expr_type.conforms_to(method_rtn_type):
                     text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" return type:' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                    replace('%s', method_rtn_type.name, 1)
-                    # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                    #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
-
+                    replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
                     error = TypeError(node.column,node.row,text)
                     self.errors.append(error)
             except Exception:
                 text = f'In class "{self.current_type.name}" in method "{self.current_feature.name}" : ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                replace('%s', method_rtn_type.name, 1)
-                # text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                #     replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
+                replace('%s', self.current_feature.name, 1).replace('%s', method_rtn_type.name, 1)
                 error = TypeError(node.column,node.row,text)
                 self.errors.append(error)
 
@@ -221,9 +215,8 @@ class TypeChecker:
             expr_type = node.expr.computed_type
 
             if not expr_type.conforms_to(node_type):
-                # text = f'In class "{self.current_type.name}", Let result: ' + INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).replace('%s', node_type.name, 1)
                 text = INCOMPATIBLE_TYPES.replace('%s', expr_type.name, 1).\
-                    replace('%s', node_type.name, 1).replace('%s', node_type.name, 1)
+                    replace('%s', node.id, 1).replace('%s', node_type.name, 1)
                 error = TypeError(node.column,node.row,text)
                 self.errors.append(error)
 
@@ -275,7 +268,7 @@ class TypeChecker:
                 node_type = ErrorType()
             elif not node_type.conforms_to(var.type):
                 text = INCOMPATIBLE_TYPES.replace(
-                    '%s', node_type.name, 1).replace('%s', var.type.name, 1)
+                    '%s', node_type.name, 1).replace('%s', var.name, 1).replace('%s', var.type.name, 1)
                 error = TypeError(node.column, node.row, text)
                 self.errors.append(error)
                 node_type = ErrorType()
@@ -326,8 +319,13 @@ class TypeChecker:
                             error = SemanticError(node.column,node.row,text)
                             self.errors.append(error)
 
-                        if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
-                            text = f'In class {self.current_type.name} in function call of {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', param_type.name, 1)
+                        if not arg_type.conforms_to(param_type):
+
+                            try:
+                                name_arg=arg.lex
+                            except:
+                                name_arg = arg.id
+                            text = f'In class {self.current_type.name} in function call {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', name_arg, 1).replace('%s', param_type.name, 1)
                             error = TypeError(node.column,node.row,text)
                             self.errors.append(error)
                 else:
@@ -435,11 +433,13 @@ class TypeChecker:
         
         if scope.is_defined(node.lex):
             var = scope.find_variable(node.lex)
-            node_type = self.context.get_type(var.type.name)    
+            node_type = var.type
+            # node_type = self.context.get_type(var.type.name)    
         else:
             try:
                 var = self.current_type.get_attribute(node.lex)
-                node_type = self.context.get_type(var.type.name)
+                node_type = var.type
+                # node_type = self.context.get_type(var.type.name)
             except SemanticException as ex:
                 node_type = ErrorType()
                 error = NameError(node.column,node.row,ex.text)
