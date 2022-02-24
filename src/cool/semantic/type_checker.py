@@ -319,7 +319,6 @@ class TypeChecker:
                             error = SemanticError(node.column,node.row,text)
                             self.errors.append(error)
 
-                        # if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
                         if not arg_type.conforms_to(param_type):
 
                             try:
