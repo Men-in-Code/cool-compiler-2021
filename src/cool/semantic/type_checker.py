@@ -301,7 +301,7 @@ class TypeChecker:
 
             if node.parent and not obj_type.has_parent(self.context.get_type(node.parent)):
                 text = f'In class {self.current_type.name}: '+ f'Expression type "{obj_type.name}" does not conform to declared static dispatch type "{node.parent}" in function call of "{node.id}"'
-                error = TypeError(node.column,node.row,text)
+                error = AttributeError(node.column,node.row,text)
                 self.errors.append(error)
 
             try:
