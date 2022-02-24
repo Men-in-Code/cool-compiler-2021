@@ -1,4 +1,3 @@
-from pydoc import text
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
 from cool.semantic.semantic import ObjectType, Scope
