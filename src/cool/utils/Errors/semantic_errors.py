@@ -3,7 +3,7 @@ from cool.utils.Errors.CoolError import CoolError
 WRONG_SIGNATURE = 'Incompatible number of formal parameters in redefined method %s'
 SELF_IS_READONLY = 'Variable "self" is read-only.'
 LOCAL_ALREADY_DEFINED = 'Variable "%s" is already defined in method "%s".'
-INCOMPATIBLE_TYPES = 'Inferred type %s of initialization of %s does not conform to declared type %s.'
+INCOMPATIBLE_TYPES = 'Inferred type %s in "%s" does not conform to declared type %s.'
 VARIABLE_NOT_DEFINED = 'Variable "%s" is not defined in "%s".'
 INVALID_OPERATION = 'non-Int arguments: %s %s %s.'
 TYPE_AS_VARIABLE = 'Type %s used as variable.'

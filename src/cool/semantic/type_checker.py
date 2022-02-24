@@ -322,7 +322,11 @@ class TypeChecker:
                             self.errors.append(error)
 
                         if arg_type.name != 'Void' and not arg_type.conforms_to(param_type):
-                            text = f'In class {self.current_type.name} in function call of {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', arg.lex, 1).replace('%s', param_type.name, 1)
+                            try:
+                                name_arg=arg.lex
+                            except:
+                                name_arg = arg.id
+                            text = f'In class {self.current_type.name} in function call {node.id}: ' + INCOMPATIBLE_TYPES.replace('%s', arg_type.name, 1).replace('%s', name_arg, 1).replace('%s', param_type.name, 1)
                             error = TypeError(node.column,node.row,text)
                             self.errors.append(error)
                 else:
