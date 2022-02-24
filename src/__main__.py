@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "semantic/dispatch6.cl"
+    add = "codegen/arith.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -22,46 +22,70 @@ if __name__ == '__main__':
         text = file.read()
 
 #     text = '''
+#     class C inherits A
+#     {
+#         var_1:Int<-100;
+#         var_2:Int<-200;
+#         var_3:Int<-200;
+#         f():Int
+#         {
+#             1
+#         };
+#     };
+
+#     class E inherits B
+#     {   
+#         g():Int
+#         {
+#             2
+#         };
+#         f():Int
+#         {
+#             2
+#         };
+#         var_9:Int<-900;
+#         var_10:Int;        
+#     };
+
 #     class Main inherits IO 
 #     {
-#         var_100: A;
-#         main(): IO
-#         { 
-#             {
-#                 var_100 <- new A;
-#                 var_100.get_value();
-#                 out_string(var_100.get_self().type_name());
-#             }
+
+#         var_4:Int<-400;
+#         f():Int
+#         {
+#             3
 #         };
+#         var_5:Int;
+
+#         main(): Object
+#         { 
+#             1
+#         };
+#     };
+
+#     class B inherits A
+#     {   
+#         g():Int
+#         {
+#             3
+#         };
+#         var_11:A;
+#         var_12:A;
 #     };
 
 #     class A inherits Main
 #     {   
-#         var_101: Main;
-#         var_102: Object;
-
-#         get_value(): IO
-#         {
-#             {
-#                     var_102 <- let 
-#                         var_101:A <- new A
-#                     in 
-#                     {
-#                         out_string(var_101);
-#                         var_101<-new B;
-#                     };
-#                     out_string(var_101.type_name());
-#             }
-#         };
-#         get_self(): Main
-#         {
-#             var_101
-#         };
+#         var_6:Int<-900;
+#         var_7:Int;
+#         var_8:Int;  
 #     };
-#     class B inherits A
+      
+#     class D inherits B
 #     {   
+#         var_9:D;
+#         var_10:C;  
+#     };   
 
-#     };
 # '''
  
 

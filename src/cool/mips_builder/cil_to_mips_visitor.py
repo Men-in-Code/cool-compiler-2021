@@ -475,9 +475,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load sum value\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+=f'lw,$t2,4($t3) #Load sum value\n'
         self.text_section+= f'add $t3,$t1,$t2\n' #resultado de la suma
         self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
         
@@ -494,9 +494,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load minus value\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+=f'lw,$t2,4($t3) #Load minus value\n'
         self.text_section+= f'sub $t3,$t2,$t1\n' #resultado de la resta
         self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
 
@@ -512,9 +512,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Star value\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+=f'lw,$t2,4($t3) #Load Star value\n'
         self.text_section+= f'mul $t3,$t1,$t2\n' #Operacion mul
         self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
 
@@ -530,9 +530,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Div value\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+=f'lw,$t2,4($t3) #Load Div value\n'
 
         self.text_section+= f'beqz $t1 error_div_by_zero\n'
 
@@ -551,7 +551,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Equal Node\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
 
@@ -571,7 +571,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Less Equal\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
 
@@ -591,7 +591,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Less \n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
 
@@ -627,7 +627,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Not Node\n'
 
         self.text_section+= f'xor $t3,$t1,1\n'
 
@@ -643,7 +643,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
         self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load Negate\n'
 
         self.text_section+= f'neg $t3,$t1\n'
 

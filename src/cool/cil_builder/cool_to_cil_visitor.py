@@ -1,3 +1,4 @@
+from msilib.schema import Class
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
@@ -18,6 +19,8 @@ class BaseCOOLToCILVisitor:
         self.current_function = None
         self.current_type_dir = None
         self.type_node_dict = {}
+        self.dottype_dict = {}
+        self.type_tree = {}
         self.context = context
         self.label_id = 0
         self.tag_id = 0
@@ -72,6 +75,7 @@ class BaseCOOLToCILVisitor:
     def register_type(self, name):
         type_node = cil.TypeCilNode(name)
         self.dottypes.append(type_node)
+        self.dottype_dict[name] = type_node
         return type_node
 
     def register_data(self, value):
@@ -80,17 +84,54 @@ class BaseCOOLToCILVisitor:
         self.dotdata.append(data_node)
         return data_node
 
-    def fill_cil_types(self,context):
-        for p in [t for t in self.dottypes]:
-            actual_type = context.get_type(p.name)
-            parents = actual_type.get_all_parents()
-            parent_methods = []
-            for p_type in reversed(parents):
-                for method in p_type.methods:
-                    if method not in actual_type.methods:
-                        parent_methods.append((method,self.to_function_name(method,p_type.name)))
-            p.methods = parent_methods+p.methods
+    # def fill_cil_types(self,context):
+    #     for p in [t for t in self.dottypes]:
+    #         actual_type = context.get_type(p.name)
+    #         parents = actual_type.get_all_parents()
+    #         parent_methods = []
+    #         for p_type in reversed(parents):
+    #             for method in p_type.methods:
+    #                 if method not in actual_type.methods:
+    #                     parent_methods.append((method,self.to_function_name(method,p_type.name)))
+    #         p.methods = parent_methods+p.methods
+
+    def fill_cil_types(self,type_name):
+        try:
+            object_type_childs = self.type_tree[type_name]
+
+            for child in object_type_childs:
+                new_methods = self.fill_cil_types_(child.name)
+                self.dottype_dict[child.name].methods = new_methods
+                self.fill_cil_types(child.name)
+        
+        except KeyError:
+            pass
+
     
+    def fill_cil_types_(self,type_):
+        dot_type = self.dottype_dict[type_]
+        type_name = dot_type.name
+        parent_type = self.context.get_type(type_name).parent
+        parent_name = parent_type.name
+        dot_parent = self.dottype_dict[parent_name]
+
+        new_method_list = []
+
+        for (old_methName,new_methName) in dot_parent.methods:
+            #Tener acceso a los nuevos nombres
+            method_original = {}
+            for method in dot_type.methods:
+                method_original[method[0]] = method[1]
+
+            if old_methName in (method[0] for method in dot_type.methods):
+                new_method_list.append((old_methName,method_original[old_methName]))
+            else:
+                new_method_list.append((old_methName,new_methName))
+        for method_touple in dot_type.methods:
+            if method_touple not in new_method_list:
+                new_method_list.append(method_touple)
+        return new_method_list
+
     def create_label(self):
         self.label_id += 1
         return f'label{self.label_id}'
@@ -105,7 +146,7 @@ class BaseCOOLToCILVisitor:
             # class_parent = class_type.parent
             attr_list = self.put_attr_on_type(class_type)
 
-            classNode.features = attr_list + self.type_node_dict[class_type.name].features
+            classNode.features = attr_list + classNode.features
 
                 
 
@@ -115,7 +156,7 @@ class BaseCOOLToCILVisitor:
         if parent_.name == 'Object' or parent_.name == 'IO':
             return []
         else:
-            list_attr = [attr for attr in self.type_node_dict[parent_.name].features if isinstance(attr,AttrDeclarationNode)]
+            list_attr = self.type_node_dict[parent_.name]
             return self.put_attr_on_type(parent_)+list_attr
             
 
@@ -125,6 +166,8 @@ class BaseCOOLToCILVisitor:
     def generateTree(self):
         classList = {}
         for classNode in self.context.types.values():
+            if classNode.name == 'Error':
+                continue
             if classNode.parent is not None:
                 try:
                     classList[classNode.parent.name].append(classNode)
@@ -368,19 +411,22 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         self.register_instruction(cil.StaticCallCilNode('Main','init_Main',[instance],instance))
         self.register_instruction(cil.StaticCallCilNode('Main','main',[instance], result))
         self.register_instruction(cil.ReturnCilNode(0))
-
         self.fill_builtin()
-        self.enumerateTypes() 
 
         for declaration in node.declarations:
-            self.type_node_dict[declaration.id] = declaration
+            self.type_node_dict[declaration.id] = [dec for dec in declaration.features if isinstance(dec,AttrDeclarationNode)]
         
         self.get_parentAttr_declarations(node)
 
 
         for declaration, child_scope in zip(node.declarations, scope.children):
             self.visit(declaration, child_scope)
-        self.fill_cil_types(self.context)
+
+
+        # self.enumerateTypes() 
+
+        self.type_tree = self.generateTree()
+        self.fill_cil_types('Object')
         self.current_function = None
 
         return cil.ProgramCilNode(self.dottypes, self.dotdata, self.dotcode)
