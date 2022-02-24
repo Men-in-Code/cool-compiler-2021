@@ -311,8 +311,6 @@ class TypeChecker:
                     for _,params in enumerate(zip(node.args, obj_method.param_types)):
                         arg, param_type = params
                         try:
-                            if arg.row == 27:
-                                print("aki")
                             self.visit(arg, scope,param_type.name)
                             arg_type = arg.computed_type
                         except SemanticException as ex:

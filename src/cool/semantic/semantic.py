@@ -164,8 +164,7 @@ class Type:
         return method
 
     def conforms_to(self, other):
-        x = self == other
-        a = other.bypass() or self == other 
+        a = other.bypass() or self.name == other.name
         b = self.parent is not None and self.parent.conforms_to(other)
         return a or b
 
