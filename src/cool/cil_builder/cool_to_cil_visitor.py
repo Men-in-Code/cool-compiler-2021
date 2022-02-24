@@ -82,12 +82,13 @@ class BaseCOOLToCILVisitor:
 
     def fill_cil_types(self,context):
         for p in [t for t in self.dottypes]:
-            p_type = context.get_type(p.name)
-            parents = p_type.get_all_parents()
+            actual_type = context.get_type(p.name)
+            parents = actual_type.get_all_parents()
             parent_methods = []
             for p_type in reversed(parents):
                 for method in p_type.methods:
-                    parent_methods.append((method,self.to_function_name(method,p_type.name)))
+                    if method not in actual_type.methods:
+                        parent_methods.append((method,self.to_function_name(method,p_type.name)))
             p.methods = parent_methods+p.methods
     
     def create_label(self):
@@ -104,7 +105,7 @@ class BaseCOOLToCILVisitor:
             # class_parent = class_type.parent
             attr_list = self.put_attr_on_type(class_type)
 
-            self.type_node_dict[class_type.name].features = attr_list + self.type_node_dict[class_type.name].features
+            classNode.features = attr_list + self.type_node_dict[class_type.name].features
 
                 
 
@@ -115,7 +116,7 @@ class BaseCOOLToCILVisitor:
             return []
         else:
             list_attr = [attr for attr in self.type_node_dict[parent_.name].features if isinstance(attr,AttrDeclarationNode)]
-            return list_attr+ self.put_attr_on_type(parent_)
+            return self.put_attr_on_type(parent_)+list_attr
             
 
 
@@ -575,7 +576,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             if node.call_type == 1:
                 self.register_instruction(cil.DynamicCallCilNode(expresion,node.obj.computed_type.name,node.id,[expresion]+arg_list,result))
             else:
-                self.register_instruction(cil.DynamicCallCilNode(expresion,node.parent,node.id,arg_list,result))
+                self.register_instruction(cil.DynamicParentCallCilNode(expresion,node.parent,node.id,[expresion]+arg_list,result))
 
         return result
 
@@ -642,6 +643,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         child_scope = scope.create_child()
         for let_local in node.params:
             self.visit(let_local,child_scope)
+        #In Expression
         result = self.visit(node.body,child_scope)
         return result
 
@@ -652,9 +654,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.type = Type
         # node.expr = ExpresionNode
         ###############################
-        var_created = self.register_local(VariableInfo(node.id,node.type),scope)
-
-        if node.expr is None:
+        if node.expr is not None:
+            expr_result = self.visit(node.expr,scope)
+            var_created = self.register_local(VariableInfo(node.id,node.type),scope)
+            self.register_instruction(cil.AssignCilNode(var_created,expr_result))
+        else:
+            var_created = self.register_local(VariableInfo(node.id,node.type),scope)
             if node.type == 'Int':
                 int_internal = self.define_internal_local()
                 result_location = self.define_internal_local()
@@ -680,9 +685,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
                 self.register_instruction(cil.GetDataCilNode('void_data',result_location))
 
             self.register_instruction(cil.AssignCilNode(var_created,result_location))
-        else:
-            expr_result = self.visit(node.expr,scope)
-            self.register_instruction(cil.AssignCilNode(var_created,expr_result))
         return var_created
 
 

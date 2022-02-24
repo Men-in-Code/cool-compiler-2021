@@ -317,7 +317,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
             self.text_section+= f'lw, $s0, {arg_offset}($t0) #loading param_{arg}\n'
             self.text_section+= f'sw, $s0 {(i)*4}($sp) #setting param for function call\n'
 
-        if node.method_name[:4] == 'init':
+        if node.method_name[:5] == 'init_':
             self.text_section+= f'jal {node.method_name}\n'
         else:
             function_offset = self.method_original[node.type,node.method_name]
@@ -345,9 +345,10 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.result = result
         ########################################################################
         arg_amount = (len(node.args))*4
-        self.text_section+= f'move $t0, $sp\n'
+        original_fun = self.method_original[node.static_type,node.method_name]
+
+        self.text_section+= f'move $t0, $sp #Dynamic Call\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
-        # self.text_section+= f'sw $ra, ($sp)\n'
 
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
@@ -363,9 +364,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         
 
         #Selecting Function
-        self.text_section += f'lw $a1, ($a0)\n'  #Cargar el adress
-        original_fun = self.method_original[node.static_type,node.method_name]
-        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1)\n' #Carga la funcion
+        self.text_section += f'lw $a1, ($a0) #Loading_Adress\n'  #Cargar el adress
+        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1)#Function {node.method_name}:{original_fun}\n' #Carga la funcion
         self.text_section += 'jalr $a2\n'
 
 
@@ -386,29 +386,29 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         # node.args = args
         # node.result = result
         ########################################################################
-        arg_amount = (len(node.args)+1)*4
-        self.text_section+= f'move $t0, $sp\n'
-        self.text_section+= f'subu, $sp, $sp, {arg_amount}\n'
-        self.text_section+= f'sw $ra, ($sp)\n'
+        arg_amount = (len(node.args))*4
+        self.text_section+= f'move $t0, $sp #Dynamic_Parent_Call\n'
+        self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
+
+        original_fun = self.method_original[node.static_type,node.method_name]
 
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
             self.text_section+= f'lw, $s0, {arg_offset}($t0)\n'
-            self.text_section+= f'sw, $s0 {(i+1)*4}($sp)\n'
+            self.text_section+= f'sw, $s0 {(i)*4}($sp)\n'
 
-
-        expresion_offset = self.var_offset[self.current_function.name,node.expresion_instance]  
-        self.text_section += f'lw $v0, {expresion_offset}($t0)\n' #OJO puede que no se haga la operacion asi
-        #El tipo dinamico se consigue a partir de expresion offset
+        #Conseguir el tipo estatico a partir de node.static_type aue es lo que existe en el @type
         self.text_section += 'la $t1, void_data\n'
         self.text_section += 'beq $v0, $t1, error_call_void\n'
         
-        self.text_section += f'la $v1, {node.static_type}_methods\n'
-        self.text_section += f'lw $v2, {self.method_offset[node.static_type,node.method_name]}($vi)\n'
-        self.text_section += 'jalr $v2\n'
+        self.text_section += f'la $a1, {node.static_type}_methods\n'
+        self.text_section += f'lw $a2, {self.method_offset[node.static_type,original_fun]}($a1) #FunctionToCall {original_fun}\n'
+        self.text_section += 'jalr $a2\n'
 
+
+        self.text_section+= f'addi, $sp, $sp, {arg_amount}\n'
         result_offset = self.var_offset[self.current_function.name,node.result]
-        self.text_section += f'sw $v0, {result_offset}($sp)\n'
+        self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
     # class BlockCilNode(InstructionCilNode): #7.7 Blocks
     #     pass
@@ -570,9 +570,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
-        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
 
         self.text_section+= f'jal LessEqual_comparison\n'
@@ -590,9 +590,9 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_left = self.var_offset[self.current_function.name,node.left]
         offset_dest = self.var_offset[self.current_function.name,node.dest]
         self.text_section += '\n'
-        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
-        self.text_section+=f'lw,$t1,4($t3)\n'
         self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
         self.text_section+=f'lw,$t2,4($t3)\n'
 
         self.text_section+= f'jal Less_comparison\n'
@@ -836,7 +836,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
         self.text_section += f'lw $t0, {offset_val_dir}($sp) #Goto If Label\n' #Carga el bool
         self.text_section += f'lw $t0, 4($t0) #Load Bool Value\n' #Carga el valor del bool
-        self.text_section += f'beq $t0, 1 {node.label}\n'
+        self.text_section += f'beq $t0, 1, {node.label}\n'
 
     @visitor.when (GotoBoolIfCilNode)
     def visit(self, node):
@@ -846,7 +846,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         ###########################################
         offset_val_dir = self.var_offset[self.current_function.name,node.val_dir]
         self.text_section += f'lw $t0, {offset_val_dir}($sp) #Goto If Label\n' #Carga el bool
-        self.text_section += f'beq $t0, 1 {node.label}\n'
+        self.text_section += f'beq $t0, 1, {node.label}\n'
 
     @visitor.when (NotGotoIfCilNode)
     def visit(self, node):
