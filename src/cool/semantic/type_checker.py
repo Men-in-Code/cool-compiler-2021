@@ -312,6 +312,8 @@ class TypeChecker:
                     for _,params in enumerate(zip(node.args, obj_method.param_types)):
                         arg, param_type = params
                         try:
+                            if arg.row == 27:
+                                print("aki")
                             self.visit(arg, scope,param_type.name)
                             arg_type = arg.computed_type
                         except SemanticException as ex:
@@ -429,11 +431,13 @@ class TypeChecker:
         
         if scope.is_defined(node.lex):
             var = scope.find_variable(node.lex)
-            node_type = self.context.get_type(var.type.name)    
+            node_type = var.type
+            # node_type = self.context.get_type(var.type.name)    
         else:
             try:
                 var = self.current_type.get_attribute(node.lex)
-                node_type = self.context.get_type(var.type.name)
+                node_type = var.type
+                # node_type = self.context.get_type(var.type.name)
             except SemanticException as ex:
                 node_type = ErrorType()
                 error = NameError(node.column,node.row,ex.text)
