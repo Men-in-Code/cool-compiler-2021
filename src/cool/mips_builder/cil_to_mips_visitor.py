@@ -158,7 +158,7 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
 
         self.text_section+= f'new_min_label_distance:\n'
         self.text_section+= 'move $s1,$a1\n'
-        self.text_section+= 'move $s0,$t2\n'
+        self.text_section+= 'move $s0,$t2\n' #Guardo el resultado que es un adress del padre
         self.text_section+= 'end_method_compute_distance:\n'
         self.text_section+= 'jr $ra\n'
 
@@ -825,30 +825,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
         self.text_section+= f'sw, $t1, {attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo(ojo puede q no haya q restar)
 
-
-    @visitor.when(SetDefaultCilNode)
-    def visit(self,node):
-    # class SetAttribCilNode(InstructionCilNode):
-    #######################################
-        # node.instance = instance
-        # node.type = type
-        # node.attribute = attribute
-        # node.value = value
-    #######################################
-        attr_offset = self.attribute_offset[node.type,node.attribute]
-        instance_offset = self.var_offset[self.current_function.name,node.instance]
-        if node.value == '0':
-            value = f'move, $t1, $zero\n'
-        elif node.value == "":
-            value = f'la, $t1, data_empty\n'
-        else:
-            value = f''
-
-        # self.text_section+= f'lw, $t1, {value}   \n' #Guardo el valor 
-        self.text_section+= value
-        self.text_section += '\n'
-        self.text_section+= f'lw, $t3, {instance_offset}($sp)  \n' #Buscar la local que tiene la direccion del heap
-        self.text_section+= f'sw, $t1, {attr_offset}($t3)   \n' #Cargar en un registro el valor del atributo
 
     @visitor.when(AllocateCilNode)
     def visit(self, node):

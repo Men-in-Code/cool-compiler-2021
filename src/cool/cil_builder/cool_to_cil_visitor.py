@@ -730,7 +730,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         expresionLabel_list = []
 
-        var_branch_location = self.define_internal_local() #Sitio donde se hace allocate del type_k
         result_expr_branch = self.define_internal_local() #Resultado del expr_k del branch que se va a ejecutar
         best_address = self.define_internal_local() #adress del init_method del menor type_k tal que type_k >= expr_0.Type()
         comparison_result = self.define_internal_local() #Booleano que representa si el type_i actual = al menor type_k
@@ -761,12 +760,12 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         for (i,expr_node) in enumerate(node.body):
             child_scope = scope.create_child()
             self.register_instruction(cil.LabelCilNode(expresionLabel_list[i]))
+
             var_expresion = self.register_local(VariableInfo(expr_node.id,expr_node.type),child_scope)
-
-            self.register_instruction(cil.AllocateCilNode(expr_node.type,var_branch_location))
-            self.register_instruction(cil.InternalCopyCilNode(expr_result,var_branch_location))
-
-            self.register_instruction(cil.AssignCilNode(var_expresion,var_branch_location))
+            # self.register_instruction(cil.AllocateCilNode(expr_node.type,var_branch_location))
+            # self.register_instruction(cil.InternalCopyCilNode(expr_result,var_branch_location))
+            self.register_instruction(cil.AssignCilNode(var_expresion,expr_result))
+            
             body_node_result = self.visit(expr_node.expr,child_scope)
             self.register_instruction(cil.AssignCilNode(result_expr_branch,body_node_result))
             self.register_instruction(cil.GotoCilNode(label_end))
