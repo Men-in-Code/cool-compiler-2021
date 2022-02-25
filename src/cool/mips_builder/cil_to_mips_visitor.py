@@ -399,7 +399,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
             self.text_section+= f'lw, $s0, {arg_offset}($t0) #loading param_{arg}\n'
             self.text_section+= f'sw, $s0 {(i)*4}($sp) #setting param for function call\n'
 
-        if node.method_name[:5] == 'init_':
+        if node.method_name[:5] == 'INIT_':
             self.text_section+= f'jal {node.method_name}\n'
         else:
             function_original_name = self.method_original[node.type,node.method_name]
