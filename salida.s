@@ -145,6 +145,7 @@ aux_input_string: .space 1028
 
 data_0: .asciiz "do nothing"
 .text
+main:
 jal entry
 
 end:
@@ -257,14 +258,14 @@ end_function_length_read:
 
 addi $s1,$s1,1
 string_fix:
-subi $t1, $t1, 1
-subi $s1, $s1, 1
+addi $t1, $t1, -1
+addi $s1, $s1, -1
 li $t0, 0
 lb $t0, ($t1)
 bne $t0, 10, end_fix_str
 sb $zero, ($t1)
-subi $s1,$s1,1 
-subi $t1, $t1, 1
+addi $s1,$s1,-1 
+addi $t1, $t1, -1
 lb $t0, ($t1)
 bne $t0, 13, end_fix_str
 sb $zero, ($t1)
@@ -601,7 +602,7 @@ lb $a1, ($a2)
 sb $a1, ($t3)
 addi $a2,$a2,1
 addi $t3,$t3,1
-subi $a0,$a0,1
+addi $a0,$a0,-1
 j loop_substring_dirSelf
 end_loop_substr:
 sb $zero, ($t3)

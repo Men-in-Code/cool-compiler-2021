@@ -20,6 +20,7 @@ class BaseCILToMIPSVisitor:
         self.label_id = 0
 
         self.text_section = ".text\n"
+        self.text_section += "main:\n"
         self.data_section = ".data\n"
         self.mips_type = ""
         self.type_offset = {}
@@ -210,14 +211,14 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
 
         #Fix data entry
         self.text_section += 'string_fix:\n'
-        self.text_section += 'subi $t1, $t1, 1\n' # posicion anterior al 0
-        self.text_section += 'subi $s1, $s1, 1\n' #Contador decrease
+        self.text_section += 'addi $t1, $t1, -1\n' # posicion anterior al 0
+        self.text_section += 'addi $s1, $s1, -1\n' #Contador decrease
         self.text_section += 'li $t0, 0\n'
         self.text_section += 'lb $t0, ($t1)\n' #Cargo el byte de esa posicion
         self.text_section += 'bne $t0, 10, end_fix_str\n' #remuevo el \n
         self.text_section += 'sb $zero, ($t1)\n' # remuevo el \n'
-        self.text_section += 'subi $s1,$s1,1 \n'
-        self.text_section += 'subi $t1, $t1, 1\n' # posicion anterior a la anterior
+        self.text_section += 'addi $s1,$s1,-1 \n'
+        self.text_section += 'addi $t1, $t1, -1\n' # posicion anterior a la anterior
         self.text_section += 'lb $t0, ($t1)\n'
         self.text_section += 'bne $t0, 13, end_fix_str\n' # remuevo el \r
         self.text_section += 'sb $zero, ($t1)\n' # remuevo el '\r'
@@ -1097,7 +1098,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'lw $a2, ($t2)\n'  #Cargar el adress
         self.text_section += f'lw $a2, ($a2)\n'  #Catga el numero
 
-        self.text_section+=f'subi $a2,$a2,4\n'#cantidad de atributos a copiar
+        self.text_section+=f'addi $a2,$a2,-4\n'#cantidad de atributos a copiar
         self.text_section+=f'addi $t1,$t1,4\n'
         self.text_section+=f'addi $t2,$t2,4\n'
 
@@ -1165,7 +1166,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'beqz $a0,end_readString\n'
         self.text_section += f'lb $a1, ($t1)\n'
         self.text_section += f'sb $a1, ($t3)\n'
-        self.text_section += f'subi $a0,$a0,1\n'
+        self.text_section += f'addi $a0,$a0,-1\n'
         self.text_section += f'addi $t1,$t1,1\n'
         self.text_section += f'addi $t3,$t3,1\n'
         self.text_section += f'j loop_readString\n'
@@ -1275,39 +1276,10 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'sb $a1, ($t3)\n'
         self.text_section += f'addi $a2,$a2,1\n'
         self.text_section += f'addi $t3,$t3,1\n'
-        self.text_section += f'subi $a0,$a0,1\n'
+        self.text_section += f'addi $a0,$a0,-1\n'
         self.text_section += f'j loop_substring_dirSelf\n'
 
         #End
         self.text_section += f'end_loop_substr:\n'
         self.text_section += f'sb $zero, ($t3)\n'
         self.text_section += f'sw $t4, {result_offset}($sp)\n'
-
-
-    # class SubstringCilNode(InstructionCilNode):
-    #     def __init__(self, strVal,value1, value2,result):
-    #         self.strVal = strVal
-    #         self.value1 = value1
-    #         self.value2 = value2
-    #         self.length = result
-
-
-    # #Given 2 memory location calculate the distance of his types
-    # class TypeDistanceCilNode(InstructionCilNode):
-    #     def __init__(self,type1,type2,result):
-    #         self.type1 = type1
-    #         self.type2 = type2
-    #         self.result = result 
-
-
-    # class MinCilNode(InstructionCilNode):
-    #     def __init__(self,num1,num2,result):
-    #         self.num1 = num1
-    #         self.num2 = num2
-    #         self.result = result
-
-
-
-    # class ErrorCilNode(InstructionCilNode):
-    #     def __init__(self,name):
-    #         self.name = name
