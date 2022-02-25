@@ -163,25 +163,25 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
         self.text_section+= 'end_method_compute_distance:\n'
         self.text_section+= 'jr $ra\n'
 
-    def fill_internalCopy(self):
-        #t1 = old instance
-        #t2 = new instance
-        #a2 = counter to reach 0
-        #loop to copy t1 to t2
-        self.text_section += f'\n'
-        self.text_section += f'function_internalcopy:\n'
-        self.text_section += f'loop_InternalcopyNode:\n'
-        self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
-        self.text_section += f'lw $a1, ($t1)\n'
-        self.text_section += f'sw $a1, ($t2)\n'
-        self.text_section += f'addi $t1,$t1,4\n'
-        self.text_section += f'addi $t2,$t2,4\n'
-        self.text_section += f'subu $a2,$a2,4\n'
-        self.text_section += f'j loop_InternalcopyNode\n'
+    # def fill_internalCopy(self):
+    #     #t1 = old instance
+    #     #t2 = new instance
+    #     #a2 = counter to reach 0
+    #     #loop to copy t1 to t2
+    #     self.text_section += f'\n'
+    #     self.text_section += f'function_internalcopy:\n'
+    #     self.text_section += f'loop_InternalcopyNode:\n'
+    #     self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
+    #     self.text_section += f'lw $a1, ($t1)\n'
+    #     self.text_section += f'sw $a1, ($t2)\n'
+    #     self.text_section += f'addi $t1,$t1,4\n'
+    #     self.text_section += f'addi $t2,$t2,4\n'
+    #     self.text_section += f'subu $a2,$a2,4\n'
+    #     self.text_section += f'j loop_InternalcopyNode\n'
 
 
-        self.text_section += f'end_loop_Internalcopy:\n'
-        self.text_section += f'jr $ra'
+    #     self.text_section += f'end_loop_Internalcopy:\n'
+    #     self.text_section += f'jr $ra'
 
 
     def fill_read_string(self):
@@ -305,7 +305,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
         self.fill_compute_type_distance()
-        self.fill_internalCopy()
+        # self.fill_internalCopy()
         self.fill_read_string()
         self.fill_string_comparison()
 
@@ -398,12 +398,18 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.when(StaticCallCilNode) #7.4 Distaptch Static
     def visit(self,node): 
         #########################################################################
+        #node.dynamic = dynamic
         # node.type = type
         # node.method_name = method_name
         # node.args = args
         # node.result = result
         ########################################################################
         arg_amount = (len(node.args))*4
+
+        
+        self_dir = self.var_offset[self.current_function.name,node.args[0]]
+        self.text_section+= f'lw $s4,{self_dir}($sp)\n'
+
 
 
         self.text_section+= f'move $t0, $sp #call to function {node.method_name}\n'
@@ -417,15 +423,18 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         if node.method_name[:5] == 'init_':
             self.text_section+= f'jal {node.method_name}\n'
         else:
-            function_offset = self.method_original[node.type,node.method_name]
+            function_original_name = self.method_original[node.type,node.method_name]
+            function_offset = self.method_offset[node.type,function_original_name]
+
             # self.text_section+= f'lw $s1, 4($sp)\n' #instance location
             # self.text_section+= f'la $s2, {function_offset}($s1)\n' #$s2 method name
 
             # self.text_section+= f'jalr $s2\n'
-            self.text_section+= f'jal {function_offset}\n'
+            self.text_section+= 'lw $a1, ($s4)\n'
+            self.text_section+= f'lw $a2, {function_offset} ($a1)\n'
+            self.text_section+= f'jalr $a2\n'
 
         self.text_section+= f'addi, $sp, $sp, {arg_amount}\n'
-
         result_offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += f'sw $s0, {result_offset}($sp) #Saving result on {node.result}\n'
 

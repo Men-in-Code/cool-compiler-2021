@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    # add = "codegen/primes.cl"
+    # add = "codegen/graph.cl"
 
     # path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
     #     f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -21,6 +21,35 @@ if __name__ == '__main__':
     # with open(_in) as file:
     #     text = file.read()
 
+
+#     text = text = '''
+#     class Main inherits IO 
+#     {
+#         b:B;
+#         main(): IO
+#         { 
+#             out_string(new B.f().type_name())
+#         };
+#         pepe():A
+#         {
+#             new B
+#         };
+#     };
+#     class A
+#     {
+#         f():A
+#         {
+#             self
+#         };
+#     };
+#     class B inherits A
+#     {
+#         f():A
+#         {
+#             self
+#         };
+#     };
+# '''
 
     if len(sys.argv) > 1:
         input_file = sys.argv[1]

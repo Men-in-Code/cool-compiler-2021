@@ -481,10 +481,9 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         # node.type = str
         # node.expr = ExpressionNode
         #################################################
-        class_dir = self.current_type_dir
         if node.expr is not None:
             result = self.visit(node.expr,scope)
-            self.register_instruction(cil.SetAttribCilNode(class_dir,self.current_type.name,node.id,result))
+            self.register_instruction(cil.SetAttribCilNode('self',self.current_type.name,node.id,result))
         else:
             self.set_default_values(node)
 
@@ -551,9 +550,7 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             return cool_var
         elif f'param_{node.lex}' in [param_nodes.name for param_nodes in self.params]:
             return f'param_{node.lex}'
-        # elif node.lex in self.current_type.all_attributes():
         else:
-        #### que iria en instance ###### ojo
             new_local = self.define_internal_local()
             self.register_instruction(cil.GetAttribCilNode('self',self.current_type.name,node.lex,new_local))
             return new_local
@@ -961,10 +958,10 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         allocate_dir = self.define_internal_local()
         result = self.define_internal_local()
-        if node.lex == "SELF_TYPE":
-            self.register_instruction(cil.AllocateCilNode(self.current_type.name,allocate_dir))
-            self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'init_{self.current_type.name}',[allocate_dir],result)) #OJO result puede ser innecesario
-        else:
-            self.register_instruction(cil.AllocateCilNode(node.lex,allocate_dir))
-            self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'init_{node.lex}',[allocate_dir],result))
+        # if node.lex == "SELF_TYPE":
+        #     self.register_instruction(cil.AllocateCilNode(self.current_type.name,allocate_dir))
+        #     self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'init_{self.current_type.name}',[allocate_dir],result)) #OJO result puede ser innecesario
+        # else:
+        self.register_instruction(cil.AllocateCilNode(node.lex,allocate_dir))
+        self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'init_{node.lex}',[allocate_dir],result))
         return allocate_dir
