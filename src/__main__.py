@@ -15,6 +15,16 @@ if __name__ == '__main__':
         input_file = sys.argv[1]
     with open(input_file, encoding="utf-8") as file:
         text = file.read()
+
+    # add = "parser/case6.cl"
+
+    # path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
+    #     f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
+
+    # _in = sys.argv[1] if len(sys.argv) > 1 else path
+    
+    # with open(_in) as file:
+    #     text = file.read()
  
     lexer = main(text)            
     tokens = lexer.tokenize()
@@ -38,5 +48,7 @@ if __name__ == '__main__':
     with open(sys.argv[2], 'w') as f:
         f.write(f'{mips_output}')
 
+    # with open(f'salida.s', 'w') as f:
+    #     f.write(mips_output)
 
 

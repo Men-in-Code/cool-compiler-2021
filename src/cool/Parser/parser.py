@@ -38,7 +38,6 @@ class Parser():
     def p_def_class(self,p):
         '''def_class : class TYPE OCUR feature_list CCUR
                      | class TYPE inherits TYPE OCUR feature_list CCUR'''
-        # col = self.lexer.get_column(p.slice[2])
         col = p.slice[2].column
         line = p.lineno(1)
         if len(p) == 6:
@@ -58,7 +57,6 @@ class Parser():
     def p_def_attr(self,p):
         '''def_attr : ID COLON TYPE
                     | ID COLON TYPE LARROW expr'''
-        # col = self.lexer.get_column(p.slice[3])
         col = p.slice[3].column
         line = p.lineno(1)
         p[0] = AttrDeclarationNode(p[1], p[3], None, line, col) if len(p)==4\
@@ -67,7 +65,6 @@ class Parser():
 
     def p_def_func(self,p):
         '''def_func : ID OPAR param_list_call CPAR COLON TYPE OCUR expr CCUR'''
-        # col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
         col = p.slice[1].column
         p[0] = FuncDeclarationNode(p[1], p[3], p[6], p[8], line, col) 
@@ -94,7 +91,7 @@ class Parser():
         '''param : ID COLON TYPE'''
         col = p.slice[1].column
         line = p.lineno(1)
-        p[0] = ParamDeclarationNode(p[1],p[3],line,col) #(p[1],p[3])
+        p[0] = ParamDeclarationNode(p[1],p[3],line,col) 
 
     def p_expr_list(self,p):
         '''expr_list : expr SEMI expr_list
@@ -108,10 +105,8 @@ class Parser():
         p[0] = [p[1]] if len(p) == 2 else [p[1]]+p[3]
 
     def p_declar(self,p):
-        # la 1era producc. no debe ir
         '''declar : ID COLON TYPE
                   | ID COLON TYPE LARROW expr'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[3].column
         line = p.lineno(1)
         p[0] = LetDeclarationNode(p[1], p[3], None, line, col) if len(p) == 4\
@@ -125,49 +120,42 @@ class Parser():
 
     def p_case_assign(self,p):
         '''case_assign : ID COLON TYPE RARROW expr SEMI'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[3].column
         line = p.lineno(1)
         p[0] = VarDeclarationNode(p[1],p[3],p[5], line, col)
 
     def p_expr_let(self,p):
         '''atom : let declar_list in expr'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = LetNode(p[2],p[4], line, col)
 
     def p_expr_while(self,p):
         '''atom : while expr loop expr pool'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = WhileNode(p[2], p[4], line, col)
 
     def p_expr_if(self,p):
         '''atom : if expr then expr else expr fi'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] =  IfNode(p[2],p[4],p[6], line, col)
 
     def p_expr_case(self,p):
         '''atom : case expr of assign_list esac'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = CaseNode(p[2], p[4], line, col)
     
     def p_expr_group(self,p):
         '''atom : OCUR expr_list CCUR'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = ExpressionGroupNode(p[2], line, col)
 
     def p_expr_assign(self,p):
         '''atom : ID LARROW expr'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = AssignNode(p[1],p[3], line, col)
@@ -179,7 +167,6 @@ class Parser():
     def p_boolean(self,p):
         '''boolean : not comparison
                    | comparison'''
-        # col = self.lexer.get_column(p.slice[1])
         line = p.lineno(1)
         p[0] = NotNode(p[2], line, p.slice[1].column) if len(p) == 3 else p[1]
 
@@ -222,14 +209,12 @@ class Parser():
     
     def p_unary_negate(self,p):
         '''unary : NOX unary'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = NegateNode(p[2], line, col)
     
     def p_unary_isvoid(self,p):
         '''unary : isvoid expr'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = IsVoidNode(p[2], line, col)
@@ -260,7 +245,6 @@ class Parser():
     
     def p_atom_num(self,p):
         '''atom : NUMBER'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = ConstantNumNode(p[1], line, col)
@@ -268,28 +252,24 @@ class Parser():
     def p_atom_boolean(self, p):
         '''atom : true
                 | false'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = BooleanNode(p[1], line, col)
 
     def p_atom_id(self,p):
         '''atom : ID'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = VariableNode(p[1], line, col)
 
     def p_atom_instantiate(self,p):
         '''atom : new TYPE'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(2)
         p[0] = InstantiateNode(p[2], line, col)
     
     def p_atom_string(self,p):
         '''atom : STRING'''
-        # col = self.lexer.get_column(p.slice[1])
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = StringNode(p[1], line, col)
@@ -313,7 +293,7 @@ class Parser():
             self.errors.append(error)
             return
         msg = f'ERROR at or near "{p.value}"'
-        self.lexer.get_column(p)        ### revisar xq no hago p.column y es necesario recalcular
+        # self.lexer.get_column(p)        ### revisar xq no hago p.column y es necesario recalcular
         error = ParserError(p.column,p.lineno,msg)
         self.errors.append(error)
         self.parser.errok()

@@ -15,7 +15,7 @@ class Lexer:
         start_line = self.text.rfind('\n', 0, token.lexpos) + 1
         c = (token.lexpos - start_line) + 1 
         token.column = c
-        return c
+        # return c
 
      # Declare the state
     states = (
@@ -257,16 +257,9 @@ class Lexer:
         t.value = float(t.value)    
         return t
 
-    # def t_BOOL(self,t):
-    #     r'[true,false]'
-    #     self.get_column(t)
-    #     t.value = bool(t.value)    
-    #     return t
-
     def t_newline(self, t):
         r'\n+'
         t.lexer.lineno += len(t.value)
-        # self.newlineFound = t.lexpos 
 
 
     t_ignore= '  \t\f\r\t\v'
@@ -289,34 +282,6 @@ class Lexer:
             
         return tokens
 
-def main(input:str):#ver si no hay q mantener el input
+def main(input:str):
     mylexer = Lexer(input)
-    # for tok in mylexer.tokenize(input):
-    #     print(tok)
-
-    
-
     return mylexer
-
-# if __name__ == "__main__":
-#     import sys
-
-#     if len(sys.argv) != 2:
-#         print("Usage: ./lexer.py program.cl")
-#         exit()
-#     elif not str(sys.argv[1]).endswith(".cl"):
-#         print("Cool program source code files must end with .cl extension.")
-#         print("Usage: ./lexer.py program.cl")
-#         exit()
-
-#     input_file = sys.argv[1]
-#     with open(input_file, encoding="utf-8") as file:
-#         cool_program_code = file.read()
-    
-#     lexer = Lexer()
-#     lexer.input(cool_program_code)
-#     for token in lexer: pass
-    
-#     if lexer.errors:
-#         print(lexer.errors[0])
-#         exit(1)
