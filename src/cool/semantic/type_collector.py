@@ -11,7 +11,7 @@ class TypeCollector(object):
         self.context = None
         self.errors = errors
         self.type_level = {}
-        self.BUILT_IN_TYPES = ['Int','String','Bool','Object','SELF_TYPE','AUTO_TYPE']
+        self.BUILT_IN_TYPES = ['Int','String','Bool','Object','SELF_TYPE']
     
     @visitor.on('node')
     def visit(self, node):
@@ -21,9 +21,7 @@ class TypeCollector(object):
     @visitor.when(ProgramNode)
     def visit(self, node):
         self.context = Context()
-        self.context.create_type('SELF_TYPE')
-        self.context.create_type('AUTO_TYPE')
-        
+        self.context.create_type('SELF_TYPE')        
         
         for def_class in node.declarations:
             self.visit(def_class)

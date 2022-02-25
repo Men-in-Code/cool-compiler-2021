@@ -17,8 +17,24 @@ class TypeBuilder:
         
     @visitor.when(ProgramNode)
     def visit(self, node):
+        main_row = 0
+        main_column = 0
         for def_class in node.declarations:
-            self.visit(def_class)           
+            self.visit(def_class)
+            if(def_class.id=='Main'):
+                main_row = def_class.row
+                main_column = def_class.column
+        if not self.context.types.__contains__('Main'):
+            text = "The class Main is not defined"
+            error = TypeError(0,0,text)
+            self.errors.append(error)
+        else:
+            if not self.context.types['Main'].methods.__contains__('main'):
+                main_node = self.context.types['Main']
+                text = "The main method is not defined in class Main"
+                error = AttributeError(main_column,main_row,text)
+                self.errors.append(error)
+           
     
     @visitor.when(ClassDeclarationNode)
     def visit(self, node):

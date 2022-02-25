@@ -163,7 +163,7 @@ class TypeChecker:
             
         node.computed_type = get_common_parent(then_type,else_type ,self.context)        
 
-    ##### Revisar xq no se hace nada con el node_type, o cual seria el tipo de este nodo
+
     @visitor.when(WhileNode)
     def visit(self, node, scope,expected = None):
         self.visit(node.condition, scope, 'Bool' )
@@ -278,9 +278,6 @@ class TypeChecker:
                 var = self.current_type.get_attribute(node.id)
                 node_type = self.context.get_type(var.type.name)
             except SemanticException as ex:
-                # node_type = ErrorType()
-                # error = NameError(node.column,node.row,ex.text)
-                # self.errors.append(error)
                 text = VARIABLE_NOT_DEFINED.replace('%s', node.id, 1)
                 error = NameError(node.column,node.row,text)
                 self.errors.append(error)
@@ -297,7 +294,7 @@ class TypeChecker:
                 node.obj.computed_type = None
             else:
                 self.visit(node.obj, scope)
-                obj_type = node.obj.computed_type####
+                obj_type = node.obj.computed_type
 
             if node.parent and not obj_type.has_parent(self.context.get_type(node.parent)):
                 text = f'In class {self.current_type.name}: '+ f'Expression type "{obj_type.name}" does not conform to declared static dispatch type "{node.parent}" in function call of "{node.id}"'
@@ -363,7 +360,6 @@ class TypeChecker:
         right_type = node.right.computed_type
         
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
-            # text = f'In class {self.current_type.name}: '+INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
             text = INVALID_OPERATION.replace('%s', left_type.name, 1).\
                 replace('%s',node.lex,1).replace('%s', right_type.name, 1)
 
@@ -384,7 +380,6 @@ class TypeChecker:
         right_type = node.right.computed_type
         
         if not left_type.conforms_to(IntType()) or not right_type.conforms_to(IntType()):
-            # text = f'In class {self.current_type.name}: '+ INVALID_OPERATION.replace('%s', left_type.name, 1).replace('%s', right_type.name, 1)
             text = INVALID_OPERATION.replace('%s', left_type.name, 1).\
                 replace('%s',node.lex,1).replace('%s', right_type.name, 1)
             node_type = ErrorType()
@@ -434,12 +429,10 @@ class TypeChecker:
         if scope.is_defined(node.lex):
             var = scope.find_variable(node.lex)
             node_type = var.type
-            # node_type = self.context.get_type(var.type.name)    
         else:
             try:
                 var = self.current_type.get_attribute(node.lex)
                 node_type = var.type
-                # node_type = self.context.get_type(var.type.name)
             except SemanticException as ex:
                 node_type = ErrorType()
                 error = NameError(node.column,node.row,ex.text)
@@ -464,7 +457,6 @@ class TypeChecker:
     @visitor.when(IsVoidNode)
     def visit(self, node, scope,expected = None):
         self.visit(node.right, scope)
-        # right_type = node.right.computed_type
         node.computed_type = self.context.get_type('Bool')
 
     @visitor.when(NotNode)
