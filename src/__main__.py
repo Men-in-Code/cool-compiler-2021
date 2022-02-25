@@ -11,14 +11,20 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/hairyscary.cl"
+    # add = "codegen/hairyscary.cl"
 
-    path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
-        f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
+    # path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
+    #     f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
 
-    _in = sys.argv[1] if len(sys.argv) > 1 else path
+    # _in = sys.argv[1] if len(sys.argv) > 1 else path
     
-    with open(_in) as file:
+    # with open(_in) as file:
+    #     text = file.read()
+
+
+    if len(sys.argv) > 1:
+        input_file = sys.argv[1]
+    with open(input_file, encoding="utf-8") as file:
         text = file.read()
  
 
