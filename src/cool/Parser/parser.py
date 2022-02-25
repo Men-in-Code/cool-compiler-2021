@@ -124,42 +124,6 @@ class Parser():
         line = p.lineno(1)
         p[0] = VarDeclarationNode(p[1],p[3],p[5], line, col)
 
-    def p_expr_let(self,p):
-        '''atom : let declar_list in expr'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] = LetNode(p[2],p[4], line, col)
-
-    def p_expr_while(self,p):
-        '''atom : while expr loop expr pool'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] = WhileNode(p[2], p[4], line, col)
-
-    def p_expr_if(self,p):
-        '''atom : if expr then expr else expr fi'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] =  IfNode(p[2],p[4],p[6], line, col)
-
-    def p_expr_case(self,p):
-        '''atom : case expr of assign_list esac'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] = CaseNode(p[2], p[4], line, col)
-    
-    def p_expr_group(self,p):
-        '''atom : OCUR expr_list CCUR'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] = ExpressionGroupNode(p[2], line, col)
-
-    def p_expr_assign(self,p):
-        '''atom : ID LARROW expr'''
-        col = p.slice[1].column
-        line = p.lineno(1)
-        p[0] = AssignNode(p[1],p[3], line, col)
-
     def p_expr_boolean(self,p):
         '''expr : boolean'''
         p[0] = p[1]
@@ -218,6 +182,42 @@ class Parser():
         col = p.slice[1].column
         line = p.lineno(1)
         p[0] = IsVoidNode(p[2], line, col)
+
+    def p_expr_let(self,p):
+        '''atom : let declar_list in expr'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = LetNode(p[2],p[4], line, col)
+
+    def p_expr_while(self,p):
+        '''atom : while expr loop expr pool'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = WhileNode(p[2], p[4], line, col)
+
+    def p_expr_if(self,p):
+        '''atom : if expr then expr else expr fi'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] =  IfNode(p[2],p[4],p[6], line, col)
+
+    def p_expr_case(self,p):
+        '''atom : case expr of assign_list esac'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = CaseNode(p[2], p[4], line, col)
+    
+    def p_expr_group(self,p):
+        '''atom : OCUR expr_list CCUR'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = ExpressionGroupNode(p[2], line, col)
+
+    def p_expr_assign(self,p):
+        '''atom : ID LARROW expr'''
+        col = p.slice[1].column
+        line = p.lineno(1)
+        p[0] = AssignNode(p[1],p[3], line, col)
     
     def p_factor_atom(self,p):
         '''factor : atom'''
@@ -293,7 +293,6 @@ class Parser():
             self.errors.append(error)
             return
         msg = f'ERROR at or near "{p.value}"'
-        # self.lexer.get_column(p)        ### revisar xq no hago p.column y es necesario recalcular
         error = ParserError(p.column,p.lineno,msg)
         self.errors.append(error)
         self.parser.errok()

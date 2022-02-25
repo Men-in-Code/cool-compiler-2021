@@ -30,7 +30,6 @@ class TypeBuilder:
             self.errors.append(error)
         else:
             if not self.context.types['Main'].methods.__contains__('main'):
-                main_node = self.context.types['Main']
                 text = "The main method is not defined in class Main"
                 error = AttributeError(main_column,main_row,text)
                 self.errors.append(error)

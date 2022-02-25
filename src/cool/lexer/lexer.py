@@ -6,7 +6,6 @@ class Lexer:
     def __init__(self,text,**kwargs) -> None:
         self.tokens = Tokens.tokens
         self.reserved = Tokens.reserved
-        # self.newlineFound = 0
         self.lexer = lex.lex(module=self, **kwargs)
         self.errors = []
         self.text = text
@@ -15,7 +14,6 @@ class Lexer:
         start_line = self.text.rfind('\n', 0, token.lexpos) + 1
         c = (token.lexpos - start_line) + 1 
         token.column = c
-        # return c
 
      # Declare the state
     states = (

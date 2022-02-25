@@ -163,27 +163,6 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
         self.text_section+= 'end_method_compute_distance:\n'
         self.text_section+= 'jr $ra\n'
 
-    # def fill_internalCopy(self):
-    #     #t1 = old instance
-    #     #t2 = new instance
-    #     #a2 = counter to reach 0
-    #     #loop to copy t1 to t2
-    #     self.text_section += f'\n'
-    #     self.text_section += f'function_internalcopy:\n'
-    #     self.text_section += f'loop_InternalcopyNode:\n'
-    #     self.text_section += f'beqz $a2,end_loop_Internalcopy\n'
-    #     self.text_section += f'lw $a1, ($t1)\n'
-    #     self.text_section += f'sw $a1, ($t2)\n'
-    #     self.text_section += f'addi $t1,$t1,4\n'
-    #     self.text_section += f'addi $t2,$t2,4\n'
-    #     self.text_section += f'subu $a2,$a2,4\n'
-    #     self.text_section += f'j loop_InternalcopyNode\n'
-
-
-    #     self.text_section += f'end_loop_Internalcopy:\n'
-    #     self.text_section += f'jr $ra'
-
-
     def fill_read_string(self):
 
         self.text_section+='\n'
@@ -562,7 +541,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
 
     # class IsVoidCilNode(InstructionCilNode): #7.11 IsVoid
-    #     def __init__(self, expresion, result):
+    #     def __INIT__(self, expresion, result):
     #         self.expresion = expresion
     #         self.result = result
     #     pass
@@ -934,7 +913,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     
     # class TypeOfCilNode(InstructionCilNode):
-    #     def __init__(self, obj, dest):
+    #     def __INIT__(self, obj, dest):
     #         self.obj = obj
     #         self.dest = dest
     @visitor.when (LabelCilNode)
