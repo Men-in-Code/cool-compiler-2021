@@ -127,7 +127,6 @@ class BaseCOOLToCILVisitor:
     def get_parentAttr_declarations(self,programNode):
         for classNode in programNode.declarations:
             class_type = self.context.get_type(classNode.id)
-            # class_parent = class_type.parent
             attr_list = self.put_attr_on_type(class_type)
 
             classNode.features = attr_list + classNode.features
@@ -143,8 +142,6 @@ class BaseCOOLToCILVisitor:
             list_attr = self.type_node_dict[parent_.name]
             return self.put_attr_on_type(parent_)+list_attr
             
-
-
             
 
     def generateTree(self):
@@ -279,7 +276,6 @@ class BaseCOOLToCILVisitor:
 
         #function INIT_length
         self.current_function = self.register_function('INIT_length')
-        # self.current_function = self.register_function(self.to_function_name('length',self.current_type.name))
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
         result = self.define_internal_local()
         self.register_instruction(cil.LengthCilNode(param_self,result))

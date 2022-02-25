@@ -1,9 +1,5 @@
 from cool.cil_builder.cil_ast import * 
 from cool.semantic import visitor
-from cool.semantic.semantic import ObjectType, Scope
-from cool.semantic.semantic import get_common_parent,multiple_get_common_parent,is_local
-from cool.semantic.semantic import SemanticException
-from cool.semantic.semantic import ErrorType, IntType, BoolType
 from cool.utils.Errors.semantic_errors import *
 from cool.semantic.semantic import *
 
@@ -29,14 +25,7 @@ class BaseCILToMIPSVisitor:
         self.method_original = {}
         self.var_offset = {}
         self.type_size = {} #quantity of attr. of that type
-        # self.errors = {
-        #     'call_void_expr':'Runtime Error: A dispatch (static or dynamic) on void',
-        #     'case_void_expr': 'Runtime Error: A case on void',
-        #     'case_branch':'Runtime Error: Execution of a case statement without a matching branch',
-        #     'zero_division':'Runtime Error: Division by zero',
-        #     'substring_out_of_range':'Runtime Error: Substring out of range',
-        #     'heap_overflow':'Runtime Error: Heap overflow'
-        # }
+        
 
     @property
     def params(self):
@@ -284,7 +273,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
         self.fill_compute_type_distance()
-        # self.fill_internalCopy()
+
         self.fill_read_string()
         self.fill_string_comparison()
 
@@ -307,7 +296,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     def visit(self,node):
         parent_name = self.context.get_type(node.name).parent 
         parent_name = 0 if parent_name is None else f'{parent_name.name}_methods'
-        # self.text_section += '\n'    
 
         self.data_section+= f'type_{node.name}: .asciiz "{node.name}"\n'
         self.data_section+= f'{node.name}_methods:\n'
@@ -347,7 +335,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += '\n'
         self.text_section += f'{node.name}:\n'
         self.text_section += f'addi, $sp, $sp, {-4*(len(node.localvars)+1)}\n'#get space for vars and return adress
-        ## ojo faltaria ver que hago con el retorno
         self.text_section += 'sw $ra, ($sp)\n'
 
         for inst in node.instructions:
@@ -393,7 +380,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
         self.text_section+= f'move $t0, $sp #call to function {node.method_name}\n'
         self.text_section+= f'addi, $sp, $sp, -{arg_amount}\n'
-        # self.text_section+= f'sw $ra, ($sp)\n'
+    
         for i,arg in enumerate(node.args):
             arg_offset = self.var_offset[self.current_function.name,arg]
             self.text_section+= f'lw, $s0, {arg_offset}($t0) #loading param_{arg}\n'
@@ -404,11 +391,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         else:
             function_original_name = self.method_original[node.type,node.method_name]
             function_offset = self.method_offset[node.type,function_original_name]
-
-            # self.text_section+= f'lw $s1, 4($sp)\n' #instance location
-            # self.text_section+= f'la $s2, {function_offset}($s1)\n' #$s2 method name
-
-            # self.text_section+= f'jalr $s2\n'
             self.text_section+= 'lw $a1, ($s4)\n'
             self.text_section+= f'lw $a2, {function_offset} ($a1)\n'
             self.text_section+= f'jalr $a2\n'
@@ -417,7 +399,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         result_offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += f'sw $s0, {result_offset}($sp) #Saving result on {node.result}\n'
 
-        # self.text_section+= 'jr $ra\n'
+       
 
 
     @visitor.when(DynamicCallCilNode) #7.4 Dispatch Dynamic
@@ -460,8 +442,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
 
-
-
     @visitor.when(DynamicParentCallCilNode) #7.4 Dispatch Dynamic
     def visit(self,node):
         #########################################################################
@@ -495,11 +475,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         result_offset = self.var_offset[self.current_function.name,node.result]
         self.text_section += f'sw $s0, {result_offset}($sp)\n'
 
-    # class BlockCilNode(InstructionCilNode): #7.7 Blocks
-    #     pass
-
-    # class LetCilNode(InstructionCilNode): #7.8 Let
-    #     pass
 
     @visitor.when(CaseCilNode)
     def visit(self,node):
@@ -534,17 +509,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+=f'sw $s0, {result_offset}($sp)\n'
 
 
-
-
-    # @visitor.when(InstantiateCilNode)
-    # def visit(self,node):
-
-
-    # class IsVoidCilNode(InstructionCilNode): #7.11 IsVoid
-    #     def __INIT__(self, expresion, result):
-    #         self.expresion = expresion
-    #         self.result = result
-    #     pass
 
 
     #Binary Aritmetic Operations
@@ -910,12 +874,6 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= f'syscall\n'
 
 
-
-    
-    # class TypeOfCilNode(InstructionCilNode):
-    #     def __INIT__(self, obj, dest):
-    #         self.obj = obj
-    #         self.dest = dest
     @visitor.when (LabelCilNode)
     def visit(self, node):
         ###########################################
