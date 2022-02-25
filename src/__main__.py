@@ -27,11 +27,8 @@ if __name__ == '__main__':
     with open(input_file, encoding="utf-8") as file:
         text = file.read()
  
-
     lexer = main(text)            
     tokens = lexer.tokenize()
-
-
 
     if (len(lexer.errors)!= 0):
         for e in lexer.errors:
@@ -50,9 +47,9 @@ if __name__ == '__main__':
     context,scope = run_semantic_pipeline(ast)
     mips_output = run_code_gen_pipeline(ast,context,scope)
 
-    with open(f'{sys.argv[1][:-3]}.mips', 'w') as f:
+    with open(sys.argv[2], 'w') as f:
         f.write(f'{mips_output}')
 
-    # with open(f'salida.mips', 'w') as f:
+    # with open(f'salida.s', 'w') as f:
     #     f.write(mips_output)
 
