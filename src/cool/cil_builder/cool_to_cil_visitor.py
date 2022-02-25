@@ -1,11 +1,6 @@
-from msilib.schema import Class
 import cool.cil_builder.cil_ast as cil
 from cool.Parser.AstNodes import *
 from cool.semantic import visitor
-from cool.semantic.semantic import ObjectType, Scope
-from cool.semantic.semantic import get_common_parent,multiple_get_common_parent,is_local
-from cool.semantic.semantic import SemanticException
-from cool.semantic.semantic import ErrorType, IntType, BoolType
 from cool.utils.Errors.semantic_errors import *
 from cool.semantic.semantic import *
 

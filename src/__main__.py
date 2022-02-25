@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/book_list.cl"
+    add = "codegen/hairyscary.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -20,55 +20,9 @@ if __name__ == '__main__':
     
     with open(_in) as file:
         text = file.read()
-
-#     text = '''
-# class Main inherits IO 
-# {
-#     pal(s : String) : Bool 
-#     {
-# 	    if s.length() = 0
-# 	    then true
-# 	    else 
-#             if s.length() = 1
-#             then true
-#             else 
-#                 if s.substr(0, 1) = s.substr(s.length() - 1, 1)
-#                 then pal(s.substr(1, s.length() -2))
-#                 else false
-#                 fi 
-#             fi 
-#         fi
-#     };
-
-#     booleanFun(x:Int):Bool
-#     {
-#         if x = 1
-#         then true
-#         else false
-#         fi
-#     };
-
-#     i : Int;
-#     ppp:String<- "pep";
-#     a:Main;
-
-#     main() : IO 
-#     {
-# 	    {
-#             a <- self;
-#             i <- ~1;
-#             if ( pal("pe") )
-#             then out_string("that was a palindrome   ")
-#             else out_string("that was not a palindrome   ")
-#             fi;
-# 	    }
-#     };
-# };
-
-# '''
  
 
-    lexer = main(text)             ##estas dos lineas estan para mi pa ver q tokeniza
+    lexer = main(text)            
     tokens = lexer.tokenize()
 
 
@@ -89,5 +43,10 @@ if __name__ == '__main__':
 
     context,scope = run_semantic_pipeline(ast)
     mips_output = run_code_gen_pipeline(ast,context,scope)
-    # mips_output = run_mips_gen_pipeline(cil_ast,context,scope)
+
+    with open(f'{sys.argv[1][:-3]}.mips', 'w') as f:
+        f.write(f'{mips_output}')
+
+    # with open(f'salida.mips', 'w') as f:
+    #     f.write(mips_output)
 
