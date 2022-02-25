@@ -299,6 +299,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+=f'li, $v0, 10\n'
         self.text_section+=f'syscall\n'
 
+        self.data_section+= 'abort_label: .asciiz "Abort called from class "\n'
+
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
         self.fill_compute_type_distance()
@@ -1023,6 +1025,17 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
 
     @visitor.when(AbortCilNode)
     def visit(self, node):
+        #####################################  
+        # node.self_from_call
+        #####################################  
+        self_offset = self.var_offset[self.current_function.name,node.self_from_call]
+        self.text_section+= 'la $a0 abort_label\n'
+        self.text_section+= 'li $v0,4\n'
+        self.text_section+= 'syscall\n'
+        self.text_section+= f'lw $a0 {self_offset}($sp)\n'
+        self.text_section+= 'lw $a0 ($a0)\n'
+        self.text_section+= 'lw $a0 4($a0)\n'
+        self.text_section += 'syscall\n'
         self.text_section+= 'j end\n'
 
 

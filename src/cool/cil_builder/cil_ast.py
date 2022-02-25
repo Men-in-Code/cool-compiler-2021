@@ -284,7 +284,8 @@ class PrintCilNode(InstructionCilNode):
     def __init__(self,to_print):
         self.to_print = to_print
 class AbortCilNode(InstructionCilNode):
-    pass
+    def __init__(self,self_from_call):
+        self.self_from_call = self_from_call
 class TypeNameCilNode(InstructionCilNode):
     def __init__(self, self_param, result):
         self.self_param = self_param

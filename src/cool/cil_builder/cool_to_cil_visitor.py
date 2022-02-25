@@ -223,8 +223,8 @@ class BaseCOOLToCILVisitor:
 
         #function abort
         self.current_function = self.register_function(self.to_function_name('abort',self.current_type.name))
-        self.register_param(VariableInfo('self',self.current_type.name))
-        self.register_instruction(cil.AbortCilNode())
+        self_param = self.register_param(VariableInfo('self',self.current_type.name))
+        self.register_instruction(cil.AbortCilNode(self_param))
         self.register_instruction(cil.ReturnCilNode())
 
         #function type_name
