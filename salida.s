@@ -15,6 +15,8 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.
 "
 abort_label: .asciiz "Abort called from class "
 
+data10000: .asciiz "\n"
+
 #TYPES
 type_Object: .asciiz "Object"
 Object_methods:
@@ -305,6 +307,9 @@ lw $a0 4($sp)
 lw $a0 ($a0)
 lw $a0 4($a0)
 syscall
+la $a0, data10000
+syscall
+
 j end
 
 move $s0, $zero

@@ -300,6 +300,7 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+=f'syscall\n'
 
         self.data_section+= 'abort_label: .asciiz "Abort called from class "\n'
+        self.data_section+= 'slash_n: .asciiz "\\n" \n'
 
         self.fill_dottext_with_errors()
         self.fill_dottext_with_comparison()
@@ -1036,6 +1037,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= 'lw $a0 ($a0)\n'
         self.text_section+= 'lw $a0 4($a0)\n'
         self.text_section += 'syscall\n'
+        self.text_section+='la $a0, slash_n\n'
+        self.text_section+='syscall\n'
         self.text_section+= 'j end\n'
 
 
