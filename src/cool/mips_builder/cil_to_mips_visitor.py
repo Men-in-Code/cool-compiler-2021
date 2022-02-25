@@ -183,6 +183,97 @@ heap_overflow: .asciiz "Runtime Error: Heap overflow.\n"
         self.text_section += f'jr $ra'
 
 
+    def fill_read_string(self):
+
+        self.text_section+='\n'
+        self.text_section+= 'read_string_function: \n'
+        #Calculate length to free space
+        self.text_section += 'move $t1,$a0\n' #Adress del data_aux_str
+        self.text_section += 'li $s1, 0\n' #contador de caracteres
+
+        self.text_section += 'loop_function_length_read:\n' 
+        self.text_section += 'li $t2,0\n'
+        self.text_section += 'lb $t2, ($t1)\n' #Cargo un caracter
+        self.text_section += 'beqz $t2, end_function_length_read\n' #si el caracter que cargue es 0, termino
+        self.text_section += 'addi $t1, $t1, 1\n' #sumo 1 a la direccion de donde estoy buscando el string
+        self.text_section += 'addi $s1, $s1, 1\n' #Sumo 1 al contador
+        self.text_section += 'j loop_function_length_read\n' #Reinicio el loop
+        self.text_section += 'end_function_length_read:\n' #Fin del loop
+
+
+
+        #En $s1 deje el contador
+        #En $t1 un puntero al 0 del string de data que recibi de entrada
+
+        self.text_section += '\n'
+        self.text_section += 'addi $s1,$s1,1\n'
+
+        #Fix data entry
+        self.text_section += 'string_fix:\n'
+        self.text_section += 'subi $t1, $t1, 1\n' # posicion anterior al 0
+        self.text_section += 'subi $s1, $s1, 1\n' #Contador decrease
+        self.text_section += 'li $t0, 0\n'
+        self.text_section += 'lb $t0, ($t1)\n' #Cargo el byte de esa posicion
+        self.text_section += 'bne $t0, 10, end_fix_str\n' #remuevo el \n
+        self.text_section += 'sb $zero, ($t1)\n' # remuevo el \n'
+        self.text_section += 'subi $s1,$s1,1 \n'
+        self.text_section += 'subi $t1, $t1, 1\n' # posicion anterior a la anterior
+        self.text_section += 'lb $t0, ($t1)\n'
+        self.text_section += 'bne $t0, 13, end_fix_str\n' # remuevo el \r
+        self.text_section += 'sb $zero, ($t1)\n' # remuevo el '\r'
+        self.text_section += 'j string_fix\n'
+        self.text_section += 'end_fix_str:\n'
+
+
+        self.text_section += 'move $a0,$s1\n'
+
+        #Allocate space for new instance
+        self.text_section += 'addi $a0,$a0,1\n'
+        self.text_section += 'li, $v0, 9\n'
+        self.text_section += 'syscall\n'
+        self.text_section += 'blt, $sp, $v0,error_heap\n'
+        self.text_section += 'move, $t3, $v0\n' #dir3: se mueve para ir rellenando
+        self.text_section += 'move $t4,$v0\n' #fijo
+
+        #Copy data to heap
+        self.text_section += 'la $t1, aux_input_string\n'
+
+        self.text_section += f'loop_readString:\n'
+        self.text_section += f'li $a1,0\n'
+        self.text_section += f'lb $a1, ($t1)\n'
+        self.text_section += f'sb $a1, ($t3)\n'
+        self.text_section += f'addi $t1,$t1,1\n'
+        self.text_section += f'addi $t3,$t3,1\n'
+        self.text_section += f'beqz $a1,end_readString\n'
+        self.text_section += f'j loop_readString\n'
+
+        self.text_section+= 'end_readString:\n' 
+        self.text_section += 'jr $ra\n'
+
+    def fill_string_comparison(self):
+        self.text_section += 'String_comparison_fun:\n'
+        self.text_section += 'bne $a1,$a2, false_string_comparison \n'
+        self.text_section += 'beqz $a1, true_string_comparison \n'
+        # self.text_section += 'li $a1,0\n'
+        # self.text_section += 'li $a1,0\n'
+        self.text_section += 'lb $a1,($t1)\n'
+        self.text_section += 'lb $a2,($t2)\n'
+        self.text_section += 'addi $t1,$t1,1\n'
+        self.text_section += 'addi $t2,$t2,1\n'
+        self.text_section += 'j String_comparison_fun\n'
+
+        # False comparison
+        self.text_section += 'false_string_comparison:\n'   
+        self.text_section += 'li $t3,0\n'
+        self.text_section += 'j end_string_comparison\n'
+
+        # True comparison
+        self.text_section += 'true_string_comparison:\n'
+        self.text_section += 'li $t3,1\n'
+        self.text_section += 'end_string_comparison:'     
+        self.text_section += 'jr $ra\n'
+
+
 class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
     @visitor.on('node')
     def visit(self, node):
@@ -211,6 +302,8 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.fill_dottext_with_comparison()
         self.fill_compute_type_distance()
         self.fill_internalCopy()
+        self.fill_read_string()
+        self.fill_string_comparison()
 
         self.data_section+= '\n#TYPES\n'
         for type in self.dottypes:
@@ -556,6 +649,47 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+=f'lw,$t2,4($t3)\n'
 
         self.text_section+= f'jal Equals_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(EqualRefCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t1, {offset_right}($sp) #Load EqualRefNode\n'
+        self.text_section+= f'lw, $t2, {offset_left}($sp)\n'
+
+        self.text_section+= f'jal Equals_comparison\n'
+
+        self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
+
+    @visitor.when(CompareStringCilNode)
+    ######################################
+    # node.dest = dest
+    # node.left = left
+    # node.right = right
+    ######################################
+    def visit(self, node):
+        offset_right = self.var_offset[self.current_function.name,node.right]
+        offset_left = self.var_offset[self.current_function.name,node.left]
+        offset_dest = self.var_offset[self.current_function.name,node.dest]
+        self.text_section += '\n'
+        self.text_section+= f'lw, $t3, {offset_right}($sp)\n'
+        self.text_section+=f'lw,$t1,4($t3) #Load String Adress Node\n'
+        self.text_section+= f'lw $a1,8($t3)\n'
+        self.text_section+= f'lw, $t3, {offset_left}($sp)\n'
+        self.text_section+=f'lw,$t2,4($t3)\n'
+        self.text_section+= f'lw $a2,8($t3)\n'
+
+
+        self.text_section+= f'jal String_comparison_fun\n'
 
         self.text_section+=f'sw, $t3, {offset_dest}($sp)\n'
 
@@ -1020,7 +1154,15 @@ class CILtoMIPSVisitor(BaseCILToMIPSVisitor):
         self.text_section+= 'la $a0,aux_input_string \n'
         self.text_section+= 'li $a1,1024\n'
         self.text_section+= 'syscall \n'
-        self.text_section+= f'sw $a0,{dest_offset}($sp)\n'
+
+        self.text_section+= 'jal read_string_function\n'
+
+
+        self.text_section+= f'sw $t4,{dest_offset}($sp)\n'
+
+        #
+
+
 
     @visitor.when(ReadStrEndCilNode)
     def visit(self, node):

@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    add = "codegen/arith.cl"
+    add = "codegen/hairyscary.cl"
 
     path: str = f"{Path.cwd()}/tests/{add}" if os.path.exists(
         f"{Path.cwd()}/tests/{add}") else f"{Path.cwd()}/../tests/{add}"
@@ -22,69 +22,48 @@ if __name__ == '__main__':
         text = file.read()
 
 #     text = '''
-#     class C inherits A
+# class Main inherits IO 
+# {
+#     pal(s : String) : Bool 
 #     {
-#         var_1:Int<-100;
-#         var_2:Int<-200;
-#         var_3:Int<-200;
-#         f():Int
-#         {
-#             1
-#         };
+# 	    if s.length() = 0
+# 	    then true
+# 	    else 
+#             if s.length() = 1
+#             then true
+#             else 
+#                 if s.substr(0, 1) = s.substr(s.length() - 1, 1)
+#                 then pal(s.substr(1, s.length() -2))
+#                 else false
+#                 fi 
+#             fi 
+#         fi
 #     };
 
-#     class E inherits B
-#     {   
-#         g():Int
-#         {
-#             2
-#         };
-#         f():Int
-#         {
-#             2
-#         };
-#         var_9:Int<-900;
-#         var_10:Int;        
-#     };
-
-#     class Main inherits IO 
+#     booleanFun(x:Int):Bool
 #     {
-
-#         var_4:Int<-400;
-#         f():Int
-#         {
-#             3
-#         };
-#         var_5:Int;
-
-#         main(): Object
-#         { 
-#             1
-#         };
+#         if x = 1
+#         then true
+#         else false
+#         fi
 #     };
 
-#     class B inherits A
-#     {   
-#         g():Int
-#         {
-#             3
-#         };
-#         var_11:A;
-#         var_12:A;
-#     };
+#     i : Int;
+#     ppp:String<- "pep";
+#     a:Main;
 
-#     class A inherits Main
-#     {   
-#         var_6:Int<-900;
-#         var_7:Int;
-#         var_8:Int;  
+#     main() : IO 
+#     {
+# 	    {
+#             a <- self;
+#             i <- ~1;
+#             if ( pal("pe") )
+#             then out_string("that was a palindrome   ")
+#             else out_string("that was not a palindrome   ")
+#             fi;
+# 	    }
 #     };
-      
-#     class D inherits B
-#     {   
-#         var_9:D;
-#         var_10:C;  
-#     };   
+# };
 
 # '''
  

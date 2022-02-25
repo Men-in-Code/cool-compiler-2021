@@ -144,8 +144,15 @@ class DivCilNode(BinaryCilNode):
 
 class EqualCilNode(BinaryCilNode):
     pass
+
+class CompareStringCilNode(BinaryCilNode):
+    pass
+
+class EqualRefCilNode(BinaryCilNode):
+    pass
 class LessEqualCilNode(BinaryCilNode):
     pass
+
 class LessCilNode(BinaryCilNode):
     pass
 class IsVoidCilNode(UnaryCilNode):

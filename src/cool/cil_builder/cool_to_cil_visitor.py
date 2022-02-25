@@ -84,17 +84,6 @@ class BaseCOOLToCILVisitor:
         self.dotdata.append(data_node)
         return data_node
 
-    # def fill_cil_types(self,context):
-    #     for p in [t for t in self.dottypes]:
-    #         actual_type = context.get_type(p.name)
-    #         parents = actual_type.get_all_parents()
-    #         parent_methods = []
-    #         for p_type in reversed(parents):
-    #             for method in p_type.methods:
-    #                 if method not in actual_type.methods:
-    #                     parent_methods.append((method,self.to_function_name(method,p_type.name)))
-    #         p.methods = parent_methods+p.methods
-
     def fill_cil_types(self,type_name):
         try:
             object_type_childs = self.type_tree[type_name]
@@ -378,14 +367,12 @@ class BaseCOOLToCILVisitor:
         param_self = self.register_param(VariableInfo('self',self.current_type.name))
         result = self.define_internal_local()
         data_aux_location = self.define_internal_local()
-        input_str = self.define_internal_local()
         len_input_str = self.define_internal_local()
         self.register_instruction(cil.ReadStringCilNode(data_aux_location))
         self.register_instruction(cil.StaticCallCilNode('String','init_length',[data_aux_location],len_input_str))
-        self.register_instruction(cil.ReadStrEndCilNode(len_input_str,input_str))
 
         self.register_instruction(cil.AllocateCilNode('String',result))
-        self.register_instruction(cil.StaticCallCilNode('Int','init_String',[result,input_str,len_input_str],result))
+        self.register_instruction(cil.StaticCallCilNode('Int','init_String',[result,data_aux_location,len_input_str],result))
         self.register_instruction(cil.ReturnCilNode(result))
 
         #Limpiar Todo
@@ -612,8 +599,8 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
             method_arg = self.visit(a,scope)
             arg_list.append(method_arg)
 
-        if node.call_type == 2 or (hasattr(node.obj,'lex') and node.obj.lex == 'self'):
-            # self_instance = self.define_internal_local()
+        if node.call_type == 2 or ( hasattr(node.obj,'lex') and node.obj.lex == 'self' and node.call_type != 3) :
+
             arg_list.insert(0,'self')
             self.register_instruction(cil.StaticCallCilNode(self.current_type.name,node.id,arg_list,result))
         else:
@@ -879,9 +866,16 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         left = self.visit(node.left,scope)
         right = self.visit(node.right,scope)
 
-        self.register_instruction(cil.EqualCilNode(dest,left,right))
+        if node.left.computed_type.name == 'String':
+            self.register_instruction(cil.CompareStringCilNode(dest,left,right))
+        elif node.left.computed_type.name in ['Int', 'Bool']:
+            self.register_instruction(cil.EqualCilNode(dest,left,right))
+        else:
+            self.register_instruction(cil.EqualRefCilNode(dest,left,right))        
+    
         self.register_instruction(cil.AllocateCilNode('Bool',result))
         self.register_instruction(cil.StaticCallCilNode('Bool','init_Bool',[result,dest],result))
+
         return result
 
     @visitor.when(LessEqual)
