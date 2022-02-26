@@ -946,7 +946,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
 
 
 
-
     @visitor.when(InstantiateNode)
     def visit(self, node, scope):
         ###############################
@@ -954,10 +953,6 @@ class COOLToCILVisitor(BaseCOOLToCILVisitor):
         ###############################
         allocate_dir = self.define_internal_local()
         result = self.define_internal_local()
-        # if node.lex == "SELF_TYPE":
-        #     self.register_instruction(cil.AllocateCilNode(self.current_type.name,allocate_dir))
-        #     self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'INIT_{self.current_type.name}',[allocate_dir],result)) #OJO result puede ser innecesario
-        # else:
         self.register_instruction(cil.AllocateCilNode(node.lex,allocate_dir))
         self.register_instruction(cil.StaticCallCilNode(self.current_type.name,f'INIT_{node.lex}',[allocate_dir],result))
         return allocate_dir
